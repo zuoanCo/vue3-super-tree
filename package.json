@@ -1,5 +1,5 @@
 {
-  "name": "vue3-tree-component",
+  "name": "vue3-super-tree",
   "version": "1.0.0",
   "description": "一个功能强大、高度可定制的 Vue 3 树形组件，完全复刻 PrimeVue Tree 的功能特性，支持拖拽、多选、键盘导航等高级功能",
   "type": "module",
@@ -20,15 +20,15 @@
     "primevue",
     "tailwindcss"
   ],
-  "author": "Your Name",
+  "author": "zuoanCo",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/vue3-tree-component.git"
+    "url": "https://github.com/zuoanCo/vue3-super-tree.git"
   },
-  "homepage": "https://github.com/yourusername/vue3-tree-component#readme",
+  "homepage": "https://github.com/zuoanCo/vue3-super-tree#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/vue3-tree-component/issues"
+    "url": "https://github.com/zuoanCo/vue3-super-tree/issues"
   },
   "scripts": {
     "dev": "vite",
