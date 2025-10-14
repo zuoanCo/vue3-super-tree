@@ -1,0 +1,556 @@
+/* PrimeVue Tree Component Styles */
+
+/* 基础变量 */
+:root {
+  --p-tree-indent: 1.25rem;
+  --p-tree-node-height: 2.25rem;
+  --p-tree-node-padding: 0.5rem;
+  --p-tree-toggler-size: 1.5rem;
+  --p-tree-checkbox-size: 1rem;
+  --p-tree-icon-size: 1rem;
+  
+  /* 颜色变量 */
+  --p-tree-background: #ffffff;
+  --p-tree-text-color: #495057;
+  --p-tree-border-color: #dee2e6;
+  --p-tree-hover-background: #f8f9fa;
+  --p-tree-selected-background: #e3f2fd;
+  --p-tree-selected-text-color: #1976d2;
+  --p-tree-focus-background: #1e40af;
+  --p-tree-focus-color: white;
+  
+  /* 拖拽颜色 */
+  --p-tree-drag-background: rgba(25, 118, 210, 0.1);
+  --p-tree-drop-indicator: #1976d2;
+  
+  /* 动画 */
+  --p-tree-transition: all 0.2s ease-in-out;
+}
+
+/* 主容器 */
+.p-tree {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.875rem;
+  background: var(--p-tree-background);
+  color: var(--p-tree-text-color);
+  border: 1px solid var(--p-tree-border-color);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.p-tree.p-tree-selectable {
+  user-select: none;
+}
+
+/* 过滤器容器 */
+.p-tree-filter-container {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--p-tree-border-color);
+  background: #f8f9fa;
+}
+
+.p-tree-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.p-tree-filter-input {
+  width: 100%;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--p-tree-border-color);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  transition: var(--p-tree-transition);
+}
+
+.p-tree-filter-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.2);
+}
+
+.p-tree-filter-icon {
+  position: absolute;
+  right: 0.75rem;
+  color: #6c757d;
+  pointer-events: none;
+}
+
+/* 加载状态 */
+.p-tree-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.p-tree-loading-text {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* 空状态 */
+.p-tree-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.p-tree-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #6c757d;
+}
+
+.p-tree-empty-icon {
+  margin-bottom: 1rem;
+  color: #dee2e6;
+}
+
+.p-tree-empty-text {
+  font-size: 0.875rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* 树容器 */
+.p-tree-container {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.p-tree-root {
+  padding: 0.25rem 0;
+}
+
+/* 节点样式 */
+.p-tree-node {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.p-tree-node-content {
+  display: flex;
+  align-items: center;
+  min-height: var(--p-tree-node-height);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: var(--p-tree-transition);
+  border-radius: 0.25rem;
+  margin: 0 0.25rem;
+}
+
+.p-tree-node-content:hover {
+  background: var(--p-tree-hover-background);
+}
+
+.p-tree-node-content:focus {
+  outline: none;
+  box-shadow: none !important;
+}
+
+/* 只有叶子节点（文件）才能显示选中样式，文件夹不显示选中样式 */
+.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content {
+  background: var(--p-tree-selected-background);
+  color: var(--p-tree-selected-text-color);
+}
+
+.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:hover {
+  background: var(--p-tree-selected-background);
+}
+
+/* 缩进 */
+.p-tree-node-indent {
+  display: inline-block;
+  width: var(--p-tree-indent);
+  height: 1px;
+}
+
+/* 展开/折叠按钮 */
+.p-tree-node-toggler {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-tree-toggler-size);
+  height: var(--p-tree-toggler-size);
+  margin-right: 0.25rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: var(--p-tree-transition);
+  color: #6c757d;
+}
+
+.p-tree-node-toggler:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--p-tree-text-color);
+}
+
+.p-tree-node-toggler:focus {
+  outline: none;
+  box-shadow: none !important;
+}
+
+.p-tree-node-toggler-spacer {
+  display: inline-block;
+  width: var(--p-tree-toggler-size);
+  height: var(--p-tree-toggler-size);
+  margin-right: 0.25rem;
+}
+
+.p-tree-node-toggler-icon {
+  transition: transform 0.2s ease-in-out;
+}
+
+.p-tree-node-toggler-icon-expanded {
+  transform: rotate(90deg);
+}
+
+/* 复选框 */
+.p-tree-node-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.p-tree-node-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.p-tree-node-checkbox-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-tree-checkbox-size);
+  height: var(--p-tree-checkbox-size);
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  transition: var(--p-tree-transition);
+}
+
+.p-tree-node-checkbox:hover .p-tree-node-checkbox-box {
+  border-color: #1976d2;
+}
+
+.p-tree-node-checkbox-checked .p-tree-node-checkbox-box {
+  background: #1976d2;
+  border-color: #1976d2;
+  color: #ffffff;
+}
+
+.p-tree-node-checkbox-partial .p-tree-node-checkbox-box {
+  background: #e3f2fd;
+  border-color: #1976d2;
+  color: #1976d2;
+}
+
+/* 节点图标 */
+.p-tree-node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-tree-icon-size);
+  height: var(--p-tree-icon-size);
+  margin-right: 0.5rem;
+  color: #6c757d;
+}
+
+.p-tree-node-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-tree-icon-size);
+  height: var(--p-tree-icon-size);
+  margin-right: 0.5rem;
+  color: #1976d2;
+}
+
+/* 节点标签 */
+.p-tree-node-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.p-tree-node-label-selected {
+  font-weight: 500;
+}
+
+/* 子节点容器 */
+.p-tree-node-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* 展开/折叠动画 */
+.p-tree-node-children {
+  transition: all 0.3s ease-in-out;
+}
+
+.p-tree-node-collapsed .p-tree-node-children {
+  max-height: 0;
+  opacity: 0;
+}
+
+.p-tree-node-expanded .p-tree-node-children {
+  max-height: none;
+  opacity: 1;
+}
+
+/* 拖拽样式 */
+.p-tree-node-dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.p-tree-node-draggable {
+  cursor: grab;
+}
+
+.p-tree-node-draggable:active {
+  cursor: grabbing;
+}
+
+.p-tree-drop-indicator {
+  position: relative;
+}
+
+.p-tree-drop-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--p-tree-drop-indicator);
+  border-radius: 1px;
+  z-index: 10;
+}
+
+.p-tree-drop-above::before {
+  top: -1px;
+}
+
+.p-tree-drop-below::before {
+  bottom: -1px;
+}
+
+.p-tree-drop-inside {
+  background: var(--p-tree-drag-background);
+  border: 1px dashed var(--p-tree-drop-indicator);
+  border-radius: 0.25rem;
+}
+
+/* 跨树拖拽样式 */
+.p-tree-cross-tree-drop {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border: 2px dashed #22c55e !important;
+  border-radius: 0.375rem !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.p-tree-cross-tree-drop::before {
+  background: #22c55e !important;
+  height: 3px !important;
+}
+
+/* 焦点样式 */
+.p-tree-node-content:focus-visible {
+  outline: none;
+}
+
+/* :focus 伪类选择器样式 - 只对叶子节点生效 */
+.p-tree-node-leaf .p-tree-node-content:focus {
+  background: var(--p-tree-focus-background, #1e40af) !important;
+  color: var(--p-tree-focus-color, white) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 更高优先级的 :focus 样式 */
+.p-tree .p-tree-node-leaf .p-tree-node-content:focus {
+  background: var(--p-tree-focus-background, #1e40af) !important;
+  color: var(--p-tree-focus-color, white) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 基本的 :focus 样式（作为后备） */
+.p-tree-node-content:focus {
+  outline: none !important;
+}
+
+/* 选中且焦点状态的 :focus 样式 */
+.p-tree .p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:focus {
+  background: var(--p-tree-focus-background, #1e3a8a) !important;
+  color: var(--p-tree-focus-color, white) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 只有叶子节点（文件）才能有focus样式，文件夹节点不应该有focus样式 */
+.p-tree .p-tree-node-leaf.p-tree-node-focused .p-tree-node-content {
+  background: var(--p-tree-focus-background, #1e40af) !important;
+  color: var(--p-tree-focus-color, white) !important;
+}
+
+.p-tree .p-tree-node-content-focused {
+  background: var(--p-tree-focus-background, #1e40af) !important;
+  color: var(--p-tree-focus-color, white) !important;
+}
+
+.p-tree .p-tree-node-leaf.p-tree-node-selected.p-tree-node-focused .p-tree-node-content {
+  background: var(--p-tree-focus-background, #1e3a8a) !important;
+  color: var(--p-tree-focus-color, white) !important;
+}
+
+/* 额外的高优先级选择器，确保焦点样式生效 */
+.p-tree-node.p-tree-node-leaf.p-tree-node-focused .p-tree-node-content {
+  background: var(--p-tree-focus-background, #1e40af) !important;
+  color: var(--p-tree-focus-color, white) !important;
+}
+
+/* 键盘导航样式 */
+.p-tree:focus {
+  outline: none;
+}
+
+.p-tree[tabindex]:focus {
+  outline: none;
+}
+
+/* 禁用状态 */
+.p-tree-node-disabled .p-tree-node-content {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.p-tree-node-disabled .p-tree-node-content:hover {
+  background: transparent;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .p-tree {
+    font-size: 0.8rem;
+  }
+  
+  .p-tree-node-content {
+    min-height: 2.5rem;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .p-tree-filter-container {
+    padding: 0.5rem;
+  }
+}
+
+/* 深色主题支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --p-tree-background: #1e1e1e;
+    --p-tree-text-color: #e0e0e0;
+    --p-tree-border-color: #404040;
+    --p-tree-hover-background: #2a2a2a;
+    --p-tree-selected-background: #1a365d;
+    --p-tree-selected-text-color: #90cdf4;
+  }
+  
+  .p-tree-filter-input {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+  
+  .p-tree-node-checkbox-box {
+    background: #2a2a2a;
+    border-color: #404040;
+  }
+}
+
+/* 高对比度主题 */
+@media (prefers-contrast: high) {
+  :root {
+    --p-tree-border-color: #000000;
+    --p-tree-text-color: #000000;
+    --p-tree-selected-background: #0000ff;
+    --p-tree-selected-text-color: #ffffff;
+  }
+}
+
+/* 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  .p-tree-node-content,
+  .p-tree-node-toggler,
+  .p-tree-node-checkbox-box,
+  .p-tree-node-children,
+  .p-tree-node-toggler-icon {
+    transition: none;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .p-tree {
+    border: none;
+    box-shadow: none;
+  }
+  
+  .p-tree-filter-container {
+    display: none;
+  }
+  
+  .p-tree-node-content:hover {
+    background: transparent;
+  }
+  
+  .p-tree-node-leaf.p-tree-node-selected .p-tree-node-content {
+    background: transparent;
+    color: inherit;
+    font-weight: bold;
+  }
+}
+
+/* 自定义滚动条 */
+.p-tree-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.p-tree-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.p-tree-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.p-tree-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Firefox 滚动条 */
+.p-tree-container {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
