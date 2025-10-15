@@ -1210,7 +1210,7 @@ import { Sun, Moon, Trash2, Folder, File, User, Settings, Database, Code } from 
 import Tree from '../components/Tree.vue'
 import { useTreeTheme, availableThemes } from '../lib/themes'
 import { generateSampleData, moveTreeNode, getNodePosition, formatDragInfo, getCrossTreeSampleData, moveCrossTreeNode, formatCrossTreeDragInfo, findTreeNode } from '../lib/utils'
-import type { TreeNode, TreeSelectionKeys, TreeExpandedKeys } from '../lib/types'
+import type { TreeNode, TreeSelectionKeys, TreeExpandedKeys, TreeDropPosition } from '../lib/types'
 
 // 调试信息
 console.log('🔍 TreeDemo.vue loaded')
@@ -1312,7 +1312,7 @@ interface DragInfo {
     data?: any
     [key: string]: any
   }
-  position: 'above' | 'below' | 'inside'
+  position: TreeDropPosition
   before: {
     parentLabel: string
     parentKey: string | number | null
@@ -1457,7 +1457,7 @@ interface CrossTreeDragInfo {
     data?: any
     [key: string]: any
   }
-  position: 'above' | 'below' | 'inside'
+  position: TreeDropPosition
   before: {
     parentLabel: string
     parentKey: string | number | null

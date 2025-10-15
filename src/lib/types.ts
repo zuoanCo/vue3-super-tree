@@ -359,6 +359,7 @@ export interface UseTreeStateReturn {
 export interface UseDragDropReturn {
   // 状态
   dragState: Ref<DragDropState>;
+  globalDragState: Ref<DragDropState>;
   isDragging: ComputedRef<boolean>;
   dragNode: ComputedRef<TreeNode | null>;
   dropNode: ComputedRef<TreeNode | null>;
@@ -370,7 +371,7 @@ export interface UseDragDropReturn {
   onDragEnter: (event: DragEvent, node: TreeNode) => void;
   onDragOver: (event: DragEvent, node: TreeNode, treeId?: string) => void;
   onDragLeave: (event: DragEvent) => void;
-  onDrop: (event: DragEvent, node: TreeNode) => void;
+  onDrop: (event: DragEvent, node: TreeNode) => TreeNodeDropEvent | null;
   
   // 工具方法
   isDraggable: (node: TreeNode) => boolean;
