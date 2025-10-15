@@ -70,7 +70,7 @@ export type TreeSelectionMode = 'single' | 'multiple' | 'checkbox';
 export type TreeFilterMode = 'lenient' | 'strict';
 
 // 拖拽位置
-export type TreeDropPosition = 'above' | 'below' | 'inside';
+export type TreeDropPosition = 'above' | 'below' | 'inside' | 'root';
 
 // 事件类型定义
 export interface TreeNodeSelectEvent {

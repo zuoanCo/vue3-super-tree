@@ -256,8 +256,6 @@ const contentClasses = computed(() => [
     'p-tree-node-selectable': props.node.selectable !== false && !hasChildren.value,
     'p-tree-node-draggable': isDraggable.value,
     'p-tree-node-droppable': props.node.droppable !== false,
-    // 只有叶子节点（文件）才能有focus样式，文件夹节点不应该有focus样式
-    'p-tree-node-content-focused': props.isFocused && !hasChildren.value,
   }
 ])
 
@@ -665,11 +663,11 @@ onMounted(() => {
   @apply transition-colors duration-200;
 }
 
-.p-tree-node-content.p-tree-node-selectable:hover:not(.p-tree-node-content-focused) {
+.p-tree-node-content.p-tree-node-selectable:hover {
   @apply bg-blue-50;
 }
 
-.p-tree-node-content:hover:not(.p-tree-node-content-focused):not([style*="background-color"]) {
+.p-tree-node-content:hover:not([style*="background-color"]) {
   @apply bg-gray-100;
 }
 
@@ -683,8 +681,7 @@ onMounted(() => {
 }
 
 /* 焦点状态样式重置 - 移除边框和轮廓，但保留内联样式的优先级 */
-.p-tree-node-focused .p-tree-node-content,
-.p-tree-node-content-focused {
+.p-tree-node-focused .p-tree-node-content {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;

@@ -191,7 +191,11 @@ export function useDragDrop(
     const percentage = y / height
     
     let position: TreeDropPosition
-    if (percentage < 0.25) {
+    
+    // 检查是否是根节点拖拽
+    if (node.key === '__root__') {
+      position = 'root'
+    } else if (percentage < 0.25) {
       position = 'above'
     } else if (percentage > 0.75) {
       position = 'below'
@@ -436,6 +440,7 @@ export function useDragDrop(
   return {
     // 状态
     dragState,
+    globalDragState,
     isDragging,
     dragNode,
     dropNode,

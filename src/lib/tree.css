@@ -413,10 +413,7 @@
   color: var(--p-tree-focus-color, white) !important;
 }
 
-.p-tree .p-tree-node-content-focused {
-  background: var(--p-tree-focus-background, #1e40af) !important;
-  color: var(--p-tree-focus-color, white) !important;
-}
+
 
 .p-tree .p-tree-node-leaf.p-tree-node-selected.p-tree-node-focused .p-tree-node-content {
   background: var(--p-tree-focus-background, #1e3a8a) !important;

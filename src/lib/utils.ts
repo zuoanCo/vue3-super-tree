@@ -119,6 +119,11 @@ export function insertTreeNode(
   newNode: TreeNode, 
   position: TreeDropPosition = 'inside'
 ): TreeNode[] {
+  // 处理根级别插入的情况
+  if (position === 'root' || targetKey === '__root__') {
+    return [...nodes, newNode]
+  }
+  
   // 处理在根级别插入的情况
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]
@@ -403,6 +408,11 @@ export function canDropNode(
   dropNode: TreeNode, 
   position: TreeDropPosition
 ): boolean {
+  // 对于根级别拖拽，总是允许
+  if (position === 'root') {
+    return dragNode.draggable !== false
+  }
+  
   // 不能拖拽到自己
   if (dragNode.key === dropNode.key) return false
   

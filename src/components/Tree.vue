@@ -38,6 +38,10 @@
       :aria-label="ariaLabel"
       tabindex="0"
       @keydown="handleTreeKeyDown"
+      @dragover="handleRootDragOver"
+      @drop="handleRootDrop"
+      @dragenter="handleRootDragEnter"
+      @dragleave="handleRootDragLeave"
     >
       <TreeNode
         v-for="node in filteredNodes"
@@ -194,6 +198,7 @@ const {
 
 const {
   dragState,
+  globalDragState,
   isDragging,
   dragNode,
   dropNode,
@@ -515,6 +520,141 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
   
   // 只触发一次拖拽事件，让外部决定是否接受
   emit('node-drop', event)
+}
+
+// 根级别拖拽事件处理
+const handleRootDragOver = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  // 检查是否在边缘区域（顶部或底部20px）
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = event.clientY
+  const edgeThreshold = 20
+  
+  const isTopEdge = y - rect.top <= edgeThreshold
+  const isBottomEdge = rect.bottom - y <= edgeThreshold
+  
+  // 只有在边缘区域才处理根级别拖拽
+  if (isTopEdge || isBottomEdge) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.dataTransfer!.dropEffect = 'move'
+    
+    // 创建一个虚拟的根节点来处理拖拽逻辑
+    const rootNode: TreeNodeType = {
+      key: '__root__',
+      label: 'Root',
+      children: props.value || []
+    }
+    
+    onDragOver(event, rootNode, props.id)
+  }
+  // 否则让事件继续传播给TreeNode处理
+}
+
+const handleRootDrop = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  // 检查是否在边缘区域（顶部或底部20px）
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = event.clientY
+  const edgeThreshold = 20
+  
+  const isTopEdge = y - rect.top <= edgeThreshold
+  const isBottomEdge = rect.bottom - y <= edgeThreshold
+  
+  // 只有在边缘区域才处理根级别拖拽
+  if (isTopEdge || isBottomEdge) {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    // 获取正确的拖拽信息（优先使用全局状态，用于跨树拖拽）
+    const currentDragNode = dragNode.value || globalDragState.value.dragNode
+    const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
+    const targetTreeId = props.id
+    const isCrossTree = sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId
+    
+    // 创建根级别拖拽事件
+    const dropEvent: TreeNodeDropEvent = {
+      originalEvent: event,
+      dragNode: currentDragNode,
+      dropNode: {
+        key: '__root__',
+        label: 'Root',
+        children: props.value || []
+      },
+      dropIndex: (props.value || []).length, // 添加到末尾
+      dropPosition: 'root',
+      sourceTreeId,
+      targetTreeId,
+      isCrossTree,
+      accept: () => {
+        onDrop(event, {
+          key: '__root__',
+          label: 'Root',
+          children: props.value || []
+        })
+        resetDragState()
+      }
+    }
+    
+    emit('node-drop', dropEvent)
+  }
+  // 否则让事件继续传播给TreeNode处理
+}
+
+const handleRootDragEnter = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  // 检查是否在边缘区域（顶部或底部20px）
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = event.clientY
+  const edgeThreshold = 20
+  
+  const isTopEdge = y - rect.top <= edgeThreshold
+  const isBottomEdge = rect.bottom - y <= edgeThreshold
+  
+  // 只有在边缘区域才处理根级别拖拽
+  if (isTopEdge || isBottomEdge) {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    const rootNode: TreeNodeType = {
+      key: '__root__',
+      label: 'Root',
+      children: props.value || []
+    }
+    
+    onDragEnter(event, rootNode)
+  }
+  // 否则让事件继续传播给TreeNode处理
+}
+
+const handleRootDragLeave = (event: DragEvent) => {
+  if (!isDragging.value) {
+    return
+  }
+  
+  // 检查是否真的离开了根容器
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    onDragLeave(event)
+  }
 }
 
 // 键盘事件处理
