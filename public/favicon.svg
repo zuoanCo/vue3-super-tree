@@ -1,4 +1,30 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="32" height="32" fill="#0A0B0D"/>
-<path d="M26.6677 23.7149H8.38057V20.6496H5.33301V8.38159H26.6677V23.7149ZM8.38057 20.6496H23.6201V11.4482H8.38057V20.6496ZM16.0011 16.0021L13.8461 18.1705L11.6913 16.0021L13.8461 13.8337L16.0011 16.0021ZM22.0963 16.0008L19.9414 18.1691L17.7865 16.0008L19.9414 13.8324L22.0963 16.0008Z" fill="#32F08C"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 背景圆圈，增强视觉识别度 -->
+  <circle cx="16" cy="16" r="15" fill="#f0f8f0" stroke="#2e7d32" stroke-width="1"/>
+  
+  <!-- 超级树木的树干 -->
+  <rect x="14" y="18" width="4" height="10" fill="#5d4037" rx="1"/>
+  
+  <!-- 超级树木的树冠层次 -->
+  <!-- 底层树冠 -->
+  <path d="M16 8 C10 8, 6 12, 6 16 C6 20, 10 22, 16 22 C22 22, 26 20, 26 16 C26 12, 22 8, 16 8 Z" 
+        fill="#4caf50" opacity="0.9"/>
+  
+  <!-- 中层树冠 -->
+  <path d="M16 6 C12 6, 9 9, 9 13 C9 16, 12 18, 16 18 C20 18, 23 16, 23 13 C23 9, 20 6, 16 6 Z" 
+        fill="#66bb6a" opacity="0.95"/>
+  
+  <!-- 顶层树冠 -->
+  <path d="M16 4 C14 4, 12 6, 12 9 C12 11, 14 13, 16 13 C18 13, 20 11, 20 9 C20 6, 18 4, 16 4 Z" 
+        fill="#81c784"/>
+  
+  <!-- 超级树木的"能量线条"，体现科技感 -->
+  <path d="M16 4 L16 2" stroke="#ffd54f" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M12 2 L12 4" stroke="#ffd54f" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+  <path d="M20 2 L20 4" stroke="#ffd54f" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- 树冠上的光点，增强视觉效果 -->
+  <circle cx="13" cy="10" r="1" fill="#fff59d" opacity="0.9"/>
+  <circle cx="19" cy="12" r="0.8" fill="#fff59d" opacity="0.8"/>
+  <circle cx="16" cy="7" r="0.6" fill="#fff59d" opacity="0.7"/>
 </svg>
