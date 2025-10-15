@@ -12,7 +12,7 @@ export default defineConfig({
       insertTypesEntry: true,
       copyDtsFiles: false,
       include: ['src/**/*'],
-      exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'src/pages/**/*'],
+      exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'src/pages/**/*', 'src/router/**/*', 'src/main.ts', 'src/App.vue'],
       outDir: 'dist',
       tsconfigPath: './tsconfig.json'
     })
@@ -27,6 +27,7 @@ export default defineConfig({
     rollupOptions: {
       external: ['vue'],
       output: {
+        exports: 'named',
         globals: {
           vue: 'Vue'
         }
