@@ -5,7 +5,8 @@ import type {
   TreeSelectionMode,
   TreeCheckboxSelectionKeys,
   TreeNodeSelectEvent,
-  TreeNodeUnselectEvent
+  TreeNodeUnselectEvent,
+  UseSelectionReturn
 } from '../lib/types'
 import { 
   isNodeSelected, 
@@ -23,7 +24,7 @@ export function useSelection(
   nodes: Ref<TreeNode[]>,
   selectionMode: Ref<TreeSelectionMode> = ref('single'),
   initialSelectionKeys?: TreeSelectionKeys
-) {
+): UseSelectionReturn {
   // 选择状态
   const selectionKeys = ref<TreeSelectionKeys>(initialSelectionKeys || null)
 

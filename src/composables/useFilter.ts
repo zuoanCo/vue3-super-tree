@@ -2,7 +2,8 @@ import { ref, computed, watch, type Ref } from 'vue'
 import type { 
   TreeNode, 
   TreeFilterMode,
-  TreeFilterConfig
+  TreeFilterConfig,
+  UseFilterReturn
 } from '../lib/types'
 import { filterTreeNodes } from '../lib/utils'
 
@@ -13,7 +14,7 @@ import { filterTreeNodes } from '../lib/utils'
 export function useFilter(
   nodes: Ref<TreeNode[]>,
   filterConfig: Partial<TreeFilterConfig> = {}
-) {
+): UseFilterReturn {
   // 过滤配置
   const config = ref<TreeFilterConfig>({
     mode: filterConfig.mode || 'lenient',

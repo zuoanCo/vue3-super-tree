@@ -3,7 +3,7 @@
  * 完整复刻 PrimeVue Tree 的类型系统
  */
 
-import type { Component } from 'vue'
+import type { Component, Ref, ComputedRef } from 'vue'
 
 // 基础树节点接口
 export interface TreeNode {
@@ -318,4 +318,158 @@ export interface SampleTreeData {
   withSelection: TreeNode[];
   withLazyLoad: TreeNode[];
   withCustomTypes: TreeNode[];
+}
+
+// Composables 返回类型定义
+export interface UseTreeStateReturn {
+  // 响应式状态
+  selectionKeys: Ref<TreeSelectionKeys>;
+  expandedKeys: Ref<TreeExpandedKeys>;
+  loading: Ref<boolean>;
+  
+  // 计算属性
+  selectedNodes: ComputedRef<any[]>;
+  expandedNodes: ComputedRef<TreeNode[]>;
+  hasSelection: ComputedRef<boolean>;
+  hasExpanded: ComputedRef<boolean>;
+  
+  // 选择相关方法
+  selectNode: (node: TreeNode, selected?: boolean) => void;
+  toggleNodeSelection: (node: TreeNode) => void;
+  clearSelection: () => void;
+  selectAll: () => void;
+  setSelectionKeys: (keys: TreeSelectionKeys) => void;
+  
+  // 展开相关方法
+  expandNode: (node: TreeNode, expanded?: boolean) => void;
+  toggleNodeExpansion: (node: TreeNode) => void;
+  expandAllNodes: () => void;
+  collapseAllNodes: () => void;
+  setExpandedKeys: (keys: TreeExpandedKeys) => void;
+  
+  // 状态检查方法
+  isSelected: (node: TreeNode) => boolean;
+  isPartiallySelected: (node: TreeNode) => boolean;
+  isExpanded: (node: TreeNode) => boolean;
+  
+  // 工具方法
+  resetState: () => void;
+}
+
+export interface UseDragDropReturn {
+  // 状态
+  dragState: Ref<DragDropState>;
+  isDragging: ComputedRef<boolean>;
+  dragNode: ComputedRef<TreeNode | null>;
+  dropNode: ComputedRef<TreeNode | null>;
+  dropPosition: ComputedRef<TreeDropPosition | null>;
+  
+  // 拖拽事件处理
+  onDragStart: (event: DragEvent, node: TreeNode) => void;
+  onDragEnd: (event: DragEvent) => void;
+  onDragEnter: (event: DragEvent, node: TreeNode) => void;
+  onDragOver: (event: DragEvent, node: TreeNode, treeId?: string) => void;
+  onDragLeave: (event: DragEvent) => void;
+  onDrop: (event: DragEvent, node: TreeNode) => void;
+  
+  // 工具方法
+  isDraggable: (node: TreeNode) => boolean;
+  isDroppable: (node: TreeNode) => boolean;
+  getDragIndicatorClass: (node: TreeNode) => string;
+  resetDragState: () => void;
+  setDragScope: (scope: string) => void;
+}
+
+export interface UseFocusReturn {
+  // 状态
+  focusedNode: Ref<TreeNode | null>;
+  focusedNodeKey: Ref<string | number | null>;
+  hasFocus: ComputedRef<boolean>;
+  focusableNodes: ComputedRef<TreeNode[]>;
+  currentFocusIndex: ComputedRef<number>;
+  
+  // 焦点方法
+  focusNode: (node: TreeNode | null, event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  clearFocus: (event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  focusNodeByKey: (key: string | number, event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  isFocused: (node: TreeNode) => boolean;
+  
+  // 键盘导航
+  focusNext: (event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  focusPrevious: (event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  focusFirst: (event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  focusLast: (event?: Event) => { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null } | null;
+  handleKeyDown: (event: KeyboardEvent) => KeyboardHandleResult | null;
+  
+  // DOM 操作
+  focusElement: (element: HTMLElement | null) => Promise<void>;
+  scrollIntoView: (element: HTMLElement | null) => Promise<void>;
+}
+
+export interface UseSelectionReturn {
+  // 状态
+  selectionKeys: Ref<TreeSelectionKeys>;
+  selectedNodes: ComputedRef<any[]>;
+  selectedCount: ComputedRef<number>;
+  hasSelection: ComputedRef<boolean>;
+  allSelected: ComputedRef<boolean>;
+  partiallySelected: ComputedRef<boolean>;
+  
+  // 选择方法
+  selectNode: (node: TreeNode, selected?: boolean, event?: Event) => any;
+  toggleNodeSelection: (node: TreeNode, event?: Event) => any;
+  selectMultipleNodes: (nodes: TreeNode[], event?: Event) => any;
+  clearSelection: () => any;
+  selectAll: () => any;
+  updateCheckboxSelection: (node: TreeNode, checked: boolean, event?: Event) => any;
+  
+  // 状态检查
+  isSelected: (node: TreeNode) => boolean;
+  isPartiallySelected: (node: TreeNode) => boolean;
+  getSelectionState: (node: TreeNode) => { selected: boolean; partiallySelected: boolean };
+  
+  // 工具方法
+  setSelectionKeys: (keys: TreeSelectionKeys) => void;
+  getSelectedNodeKeys: () => (string | number)[];
+  findSelectedNode: (key: string | number) => TreeNode | null;
+}
+
+export interface UseFilterReturn {
+  // 状态
+  filterValue: Ref<string>;
+  isFiltering: Ref<boolean>;
+  config: Ref<TreeFilterConfig>;
+  filteredNodes: ComputedRef<TreeNode[]>;
+  hasFilter: ComputedRef<boolean>;
+  hasResults: ComputedRef<boolean>;
+  filteredCount: ComputedRef<number>;
+  originalCount: ComputedRef<number>;
+  
+  // 基础过滤方法
+  setFilter: (value: string) => void;
+  clearFilter: () => void;
+  setFilterMode: (mode: TreeFilterMode) => void;
+  setFilterField: (field: string) => void;
+  setMatchCase: (matchCase: boolean) => void;
+  debouncedFilter: (value: string) => void;
+  
+  // 高级过滤方法
+  filterByPredicate: (predicate: (node: TreeNode) => boolean) => TreeNode[];
+  filterByMultipleFields: (value: string, fields: string[]) => TreeNode[];
+  filterByType: (type: string) => TreeNode[];
+  filterByCustom: (filterFn: (node: TreeNode, filterValue: string) => boolean) => TreeNode[];
+  
+  // 搜索方法
+  searchNodes: (query: string, options?: { fuzzy?: boolean; threshold?: number }) => TreeNode[];
+  highlightMatches: (text: string, query: string) => string;
+  
+  // 工具方法
+  getFilterStats: () => { total: number; filtered: number; hidden: number };
+  resetFilter: () => void;
+}
+
+export interface UseThemeReturn {
+  theme: Ref<'light' | 'dark'>;
+  toggleTheme: () => void;
+  isDark: ComputedRef<boolean>;
 }

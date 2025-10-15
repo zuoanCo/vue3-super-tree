@@ -3,7 +3,8 @@ import type {
   TreeNode, 
   TreeDropPosition, 
   DragDropState,
-  TreeNodeDropEvent 
+  TreeNodeDropEvent,
+  UseDragDropReturn
 } from '../lib/types'
 import { canDropNode, canCrossTreeDrop } from '../lib/utils'
 
@@ -33,7 +34,7 @@ export function useDragDrop(
     dropNodeLabel?: string
     isCrossTree?: boolean
   } | null) => void
-) {
+): UseDragDropReturn {
   console.log('🔧 useDragDrop 初始化:', { dragdropScope, treeId })
   // 拖拽状态
   const dragState = ref<DragDropState>({

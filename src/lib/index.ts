@@ -1,4 +1,4 @@
-// PrimeVue Tree Plugin - 主入口文件
+// Vue3 Super Tree - 主入口文件
 
 import type { App } from 'vue'
 import Tree from '../components/Tree.vue'
@@ -7,20 +7,105 @@ import TreeNode from '../components/TreeNode.vue'
 // 导出组件
 export { Tree, TreeNode }
 
-// 导出类型
+// 导出组件索引和类型
+export * from '../components/index'
+
+// 导出类型 - 完整导出所有类型定义
 export * from './types'
+export type {
+  TreeNode as TreeNodeType,
+  TreeCheckboxSelectionKeys,
+  TreeSelectionKeys,
+  TreeExpandedKeys,
+  TreeSelectionMode,
+  TreeFilterMode,
+  TreeDropPosition,
+  TreeNodeSelectEvent,
+  TreeNodeFocusEvent,
+  TreeNodeBlurEvent,
+  TreeNodeClickEvent,
+  TreeNodeUnselectEvent,
+  TreeNodeExpandEvent,
+  TreeNodeCollapseEvent,
+  TreeNodeDropEvent,
+  TreeLazyLoadEvent,
+  TreeState,
+  DragDropState,
+  TreeFilterConfig,
+  TreeProps,
+  TreeEmits,
+  TreeNodePredicate,
+  TreeNodeMapper,
+  TreeNodeVisitor,
+  SampleTreeData,
+  KeyboardHandleResult
+} from './types'
 
-// 导出工具函数
+// 导出工具函数 - 完整导出所有工具函数
 export * from './utils'
+export {
+  cn,
+  findTreeNode,
+  findTreeNodeWithParent,
+  findTreeNodePath,
+  traverseTree,
+  mapTree,
+  filterTree,
+  insertTreeNode,
+  removeTreeNode,
+  updateTreeNode,
+  moveTreeNode,
+  isNodeSelected,
+  isNodePartiallySelected,
+  updateSelectionKeys,
+  isNodeExpanded,
+  updateExpandedKeys,
+  expandAll,
+  collapseAll,
+  filterTreeNodes,
+  canDropNode,
+  getNodePosition,
+  getNodeInfo,
+  formatDragInfo,
+  generateSampleData,
+  getBasicSampleData,
+  removeNodeFromTree,
+  addNodeToTree,
+  moveCrossTreeNode,
+  canCrossTreeDrop,
+  formatCrossTreeDragInfo,
+  getCrossTreeSampleData
+} from './utils'
 
-// 导出 Composables
+// 导出 Composables - 完整导出所有组合式函数
 export { useTreeState } from '../composables/useTreeState'
 export { useDragDrop } from '../composables/useDragDrop'
 export { useSelection } from '../composables/useSelection'
 export { useFilter } from '../composables/useFilter'
+export { useFocus } from '../composables/useFocus'
+export { useTheme } from '../composables/useTheme'
 
-// 导出主题
+// 导出 Composables 索引
+export * from '../composables/index'
+
+// 导出主题 - 完整导出所有主题相关的类和工具
 export * from './themes'
+export type {
+  TreeTheme
+} from './themes'
+export {
+  TreeThemeManager,
+  laraLightTheme,
+  laraDarkTheme,
+  bootstrapTheme,
+  materialTheme,
+  fluentTheme,
+  tailwindTheme,
+  availableThemes,
+  defaultThemeManager,
+  themeUtils,
+  useTreeTheme
+} from './themes'
 
 // 导出样式
 import './tree.css'
@@ -118,10 +203,10 @@ export const version = '1.0.0'
 
 // 插件信息
 export const pluginInfo = {
-  name: 'PrimeVue Tree Plugin',
+  name: 'Vue3 Super Tree',
   version,
-  description: 'A Vue 3 Tree component that perfectly replicates PrimeVue Tree functionality',
-  author: 'SOLO Coding',
+  description: 'A powerful, highly customizable Vue 3 tree component with drag-and-drop, multi-selection, keyboard navigation and more',
+  author: 'zuoanCo',
   license: 'MIT'
 }
 

@@ -1,8 +1,9 @@
 import { ref, watchEffect, onMounted, computed } from 'vue'
+import type { UseThemeReturn } from '../lib/types'
 
 type Theme = 'light' | 'dark'
 
-export function useTheme() {
+export function useTheme(): UseThemeReturn {
   const theme = ref<Theme>('light')
 
   const getPreferredTheme = (): Theme => {

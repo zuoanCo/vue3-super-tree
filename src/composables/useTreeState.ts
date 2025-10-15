@@ -4,7 +4,8 @@ import type {
   TreeSelectionKeys, 
   TreeExpandedKeys, 
   TreeSelectionMode,
-  TreeState 
+  TreeState,
+  UseTreeStateReturn
 } from '../lib/types'
 import { 
   isNodeSelected, 
@@ -25,7 +26,7 @@ export function useTreeState(
   initialSelectionKeys?: TreeSelectionKeys,
   initialExpandedKeys?: TreeExpandedKeys,
   selectionMode: TreeSelectionMode = 'single'
-) {
+): UseTreeStateReturn {
   // 响应式状态
   const selectionKeys = ref<TreeSelectionKeys>(initialSelectionKeys || null)
   const expandedKeys = ref<TreeExpandedKeys>(initialExpandedKeys || {})

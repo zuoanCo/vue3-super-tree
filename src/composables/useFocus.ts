@@ -1,12 +1,12 @@
 import { ref, computed, nextTick, type Ref } from 'vue'
-import type { TreeNode, TreeNodeFocusEvent, TreeNodeBlurEvent, KeyboardHandleResult } from '../lib/types'
+import type { TreeNode, TreeNodeFocusEvent, TreeNodeBlurEvent, KeyboardHandleResult, UseFocusReturn } from '../lib/types'
 import { findTreeNode, traverseTree } from '../lib/utils'
 
 /**
  * 焦点管理 Composable
  * 专门处理树节点的焦点状态和键盘导航
  */
-export function useFocus(nodes: Ref<TreeNode[]>) {
+export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
   // 焦点状态
   const focusedNode = ref<TreeNode | null>(null)
   const focusedNodeKey = ref<string | number | null>(null)
