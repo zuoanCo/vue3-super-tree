@@ -38,7 +38,13 @@ export type {
   TreeNodeMapper,
   TreeNodeVisitor,
   SampleTreeData,
-  KeyboardHandleResult
+  KeyboardHandleResult,
+  UseTreeStateReturn,
+  UseDragDropReturn,
+  UseFocusReturn,
+  UseSelectionReturn,
+  UseFilterReturn,
+  UseThemeReturn
 } from './types'
 
 // 导出工具函数 - 完整导出所有工具函数

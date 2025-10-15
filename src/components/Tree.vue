@@ -502,13 +502,7 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
   
   // 设置接受拖拽的回调
   event.accept = () => {
-    // 清理拖拽状态
-    onDrop(event.originalEvent, event.dropNode)
-    
-    // 重置拖拽状态
-    resetDragState()
-    
-    // 自动更新模式：自动处理数据更新
+    // 自动更新模式：先处理数据更新
     if (props.autoUpdate && !event.isCrossTree) {
       try {
         // 使用 moveTreeNode 更新数据
@@ -521,9 +515,26 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
         
         // 触发 update:value 事件更新父组件数据
         emit('update:value', updatedData)
+        
+        // 等待下一个 tick 确保数据更新完成
+        nextTick(() => {
+          // 清理拖拽状态
+          onDrop(event.originalEvent, event.dropNode)
+          
+          // 重置拖拽状态
+          resetDragState()
+        })
       } catch (error) {
         console.error('自动更新数据失败:', error)
+        
+        // 即使出错也要清理状态
+        onDrop(event.originalEvent, event.dropNode)
+        resetDragState()
       }
+    } else {
+      // 非自动更新模式：直接清理状态
+      onDrop(event.originalEvent, event.dropNode)
+      resetDragState()
     }
   }
   

@@ -98,6 +98,7 @@ export interface TreeNodeBlurEvent {
 export type KeyboardHandleResult = 
   | { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null }
   | { type: 'activate'; node: TreeNode; event: KeyboardEvent }
+  | { type: 'navigate'; event: KeyboardEvent }
   | null
 
 export interface TreeNodeClickEvent {
