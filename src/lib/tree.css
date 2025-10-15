@@ -373,12 +373,8 @@
   height: 3px !important;
 }
 
-/* 焦点样式 */
-.p-tree-node-content:focus-visible {
-  outline: none;
-}
-
-/* :focus 伪类选择器样式 - 只对叶子节点生效 */
+/* 焦点样式 - 只使用纯 CSS :focus 伪类 */
+/* 只有叶子节点（文件）才能有焦点样式，文件夹节点不应该有焦点样式 */
 .p-tree-node-leaf .p-tree-node-content:focus {
   background: var(--p-tree-focus-background, #1e40af) !important;
   color: var(--p-tree-focus-color, white) !important;
@@ -386,44 +382,20 @@
   box-shadow: none !important;
 }
 
-/* 更高优先级的 :focus 样式 */
-.p-tree .p-tree-node-leaf .p-tree-node-content:focus {
+/* 确保文件夹节点不会有焦点样式 */
+.p-tree-node:not(.p-tree-node-leaf) .p-tree-node-content:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* 选中且焦点状态的 :focus 样式 - 焦点优先级更高 */
+.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:focus {
   background: var(--p-tree-focus-background, #1e40af) !important;
   color: var(--p-tree-focus-color, white) !important;
   outline: none !important;
   box-shadow: none !important;
-}
-
-/* 基本的 :focus 样式（作为后备） */
-.p-tree-node-content:focus {
-  outline: none !important;
-}
-
-/* 选中且焦点状态的 :focus 样式 */
-.p-tree .p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:focus {
-  background: var(--p-tree-focus-background, #1e3a8a) !important;
-  color: var(--p-tree-focus-color, white) !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* 只有叶子节点（文件）才能有focus样式，文件夹节点不应该有focus样式 */
-.p-tree .p-tree-node-leaf.p-tree-node-focused .p-tree-node-content {
-  background: var(--p-tree-focus-background, #1e40af) !important;
-  color: var(--p-tree-focus-color, white) !important;
-}
-
-
-
-.p-tree .p-tree-node-leaf.p-tree-node-selected.p-tree-node-focused .p-tree-node-content {
-  background: var(--p-tree-focus-background, #1e3a8a) !important;
-  color: var(--p-tree-focus-color, white) !important;
-}
-
-/* 额外的高优先级选择器，确保焦点样式生效 */
-.p-tree-node.p-tree-node-leaf.p-tree-node-focused .p-tree-node-content {
-  background: var(--p-tree-focus-background, #1e40af) !important;
-  color: var(--p-tree-focus-color, white) !important;
 }
 
 /* 键盘导航样式 */

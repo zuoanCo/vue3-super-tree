@@ -24,12 +24,6 @@
       @dragleave="handleDragLeave"
       @drop="handleDrop"
       :draggable="isDraggable"
-      :data-debug-focused="isFocused"
-      :data-debug-selected="isSelected"
-      :data-debug-has-children="hasChildren"
-      :data-debug-node-key="node.key"
-      :data-debug-focus-bg="focusBackgroundColor"
-      :data-debug-focus-text="focusTextColor"
     >
       <!-- 缩进 -->
       <span 
@@ -160,7 +154,6 @@ interface Props {
   isSelected?: boolean
   isPartiallySelected?: boolean
   isExpanded?: boolean
-  isFocused?: boolean
   dragIndicatorClass?: string
   draggableNodes?: boolean
   selectedBackgroundColor?: string
@@ -176,7 +169,6 @@ const props = withDefaults(defineProps<Props>(), {
   isSelected: false,
   isPartiallySelected: false,
   isExpanded: false,
-  isFocused: false,
   dragIndicatorClass: '',
   draggableNodes: false,
   selectedBackgroundColor: '#e3f2fd',
@@ -241,8 +233,6 @@ const nodeClasses = computed(() => [
     // 只有叶子节点（文件）才能显示选中样式，文件夹不显示选中样式
     'p-tree-node-selected': props.isSelected && !hasChildren.value,
     'p-tree-node-partial': props.isPartiallySelected && !hasChildren.value,
-    // 只有叶子节点（文件）才能有focus样式，文件夹节点不应该有focus样式
-    'p-tree-node-focused': props.isFocused && !hasChildren.value,
     'p-tree-node-loading': props.node.loading,
   },
   props.node.styleClass,
@@ -322,69 +312,15 @@ const contentStyles = computed(() => {
     styles['--p-tree-focus-color'] = props.focusTextColor
   }
   
-  // 只有叶子节点才应用选中和焦点样式
-  if (!hasChildren.value) {
-    if (props.isFocused) {
-      // 焦点样式优先级更高 - 内联样式优先级最高
-      if (props.focusBackgroundColor) {
-        styles.backgroundColor = props.focusBackgroundColor
-      }
-      if (props.focusTextColor) {
-        styles.color = props.focusTextColor
-      }
-      styles.outline = 'none'
-      styles.border = 'none'
-      styles.boxShadow = 'none'
-      
-      // 调试日志
-      console.log('🔥 FOCUS STYLES APPLIED:', {
-        nodeKey: props.node.key,
-        nodeLabel: props.node.label,
-        isFocused: props.isFocused,
-        isSelected: props.isSelected,
-        hasChildren: hasChildren.value,
-        focusBackgroundColor: props.focusBackgroundColor,
-        focusTextColor: props.focusTextColor,
-        cssVariables: {
-          '--p-tree-focus-background': props.focusBackgroundColor,
-          '--p-tree-focus-color': props.focusTextColor
-        },
-        appliedStyles: styles,
-        nodeClasses: nodeClasses.value,
-        contentClasses: contentClasses.value
-      })
-    } else if (props.isSelected) {
-      // 选中样式
-      if (props.selectedBackgroundColor) {
-        styles.backgroundColor = props.selectedBackgroundColor
-      }
-      if (props.selectedTextColor) {
-        styles.color = props.selectedTextColor
-      }
-      
-      // 调试日志
-      console.log('✅ SELECTED STYLES APPLIED:', {
-        nodeKey: props.node.key,
-        nodeLabel: props.node.label,
-        isFocused: props.isFocused,
-        isSelected: props.isSelected,
-        hasChildren: hasChildren.value,
-        selectedBackgroundColor: props.selectedBackgroundColor,
-        selectedTextColor: props.selectedTextColor,
-        appliedStyles: styles,
-        nodeClasses: nodeClasses.value,
-        contentClasses: contentClasses.value
-      })
+  // 只有叶子节点才应用选中样式
+  if (!hasChildren.value && props.isSelected) {
+    // 选中样式
+    if (props.selectedBackgroundColor) {
+      styles.backgroundColor = props.selectedBackgroundColor
     }
-  } else {
-    // 调试日志 - 文件夹节点
-    console.log('📁 FOLDER NODE (no styles):', {
-      nodeKey: props.node.key,
-      nodeLabel: props.node.label,
-      isFocused: props.isFocused,
-      isSelected: props.isSelected,
-      hasChildren: hasChildren.value
-    })
+    if (props.selectedTextColor) {
+      styles.color = props.selectedTextColor
+    }
   }
   
   return styles

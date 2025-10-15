@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
 import TreeDemo from '@/pages/TreeDemo.vue'
+import UserTreeExample from '@/pages/UserTreeExample.vue'
+import AutoUpdateExample from '@/pages/AutoUpdateExample.vue'
 
 // 定义路由配置
 const routes = [
@@ -13,6 +15,16 @@ const routes = [
     path: '/demo',
     name: 'demo',
     component: TreeDemo,
+  },
+  {
+    path: '/example',
+    name: 'example',
+    component: UserTreeExample,
+  },
+  {
+    path: '/auto-update',
+    name: 'auto-update',
+    component: AutoUpdateExample,
   },
   {
     path: '/about',

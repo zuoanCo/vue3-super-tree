@@ -17,12 +17,13 @@
 - **🎨 自定义图标** - 支持节点图标、展开/折叠图标自定义
 
 ### 🔥 高级功能
-- **🖱️ 拖拽排序** - 同树内节点拖拽重排
+- **🖱️ 智能拖拽排序** - 同树内节点拖拽重排，支持自动数据更新
 - **🔀 跨树拖拽** - 支持在不同树组件间拖拽节点
+- **⚡ 自动更新模式** - 拖拽操作自动更新数据源，无需手动处理
 - **⌨️ 键盘导航** - 完整的键盘操作支持（方向键、Enter、Space等）
 - **🔍 节点过滤** - 实时搜索和过滤节点
 - **⚡ 懒加载** - 支持动态加载子节点
-- **🎯 焦点管理** - 完善的焦点状态管理
+- **🎯 原生焦点管理** - 基于浏览器原生 :focus 伪类的焦点样式
 - **🎨 自定义样式** - 支持主题定制和样式覆盖
 
 ### 💻 技术特性
@@ -32,6 +33,7 @@
 - **📱 响应式设计** - 适配各种屏幕尺寸
 - **🔗 事件钩子系统** - 丰富的事件回调支持
 - **♿ 无障碍访问** - 完整的 ARIA 支持
+- **🚀 生产优化** - 生产构建自动移除调试日志，优化性能
 
 ## 📦 安装
 
@@ -168,6 +170,7 @@ const expandedKeys = ref<TreeExpandedKeys>({})
 | `selectionKeys` | `TreeSelectionKeys` | `{}` | 选中状态 |
 | `expandedKeys` | `TreeExpandedKeys` | `{}` | 展开状态 |
 | `dragdropScope` | `string` | `undefined` | 拖拽作用域 |
+| `autoUpdate` | `boolean` | `false` | 拖拽时是否自动更新数据源 |
 | `filter` | `boolean` | `false` | 是否启用过滤 |
 | `filterMode` | `'lenient' \| 'strict'` | `'lenient'` | 过滤模式 |
 | `filterBy` | `string` | `'label'` | 过滤字段 |
@@ -276,21 +279,66 @@ import 'vue3-super-tree/style.css'
 
 ### 4. 拖拽功能
 
+#### 自动更新模式（推荐）
+
 ```vue
 <template>
   <Tree
     :value="data"
+    :autoUpdate="true"
     dragdropScope="demo"
     @node-drop="onNodeDrop"
   />
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Tree } from 'vue3-super-tree'
 import 'vue3-super-tree/style.css'
 
+const data = ref([...]) // 你的树形数据
+
 const onNodeDrop = (event) => {
-  // 处理拖拽逻辑
+  // 自动更新模式下，数据会自动更新，只需要接受拖拽
+  event.accept()
+  console.log('拖拽完成，数据已自动更新')
+}
+</script>
+```
+
+#### 手动处理模式
+
+```vue
+<template>
+  <Tree
+    :value="data"
+    :autoUpdate="false"
+    dragdropScope="demo"
+    @node-drop="onNodeDrop"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Tree } from 'vue3-super-tree'
+import 'vue3-super-tree/style.css'
+
+const data = ref([...]) // 你的树形数据
+
+const onNodeDrop = (event) => {
+  // 手动处理拖拽逻辑
+  const { dragNode, dropNode, dropIndex } = event
+  
+  // 自定义拖拽处理逻辑
+  if (dropNode) {
+    // 拖拽到节点上
+    if (!dropNode.children) dropNode.children = []
+    dropNode.children.push(dragNode)
+  } else {
+    // 拖拽到根级别
+    data.value.splice(dropIndex, 0, dragNode)
+  }
+  
   event.accept()
 }
 </script>
@@ -392,6 +440,26 @@ const onNodeLoad = async (event) => {
 import 'vue3-super-tree/style.css'
 ```
 
+### 原生焦点样式
+
+组件使用浏览器原生的 `:focus` 伪类来管理焦点样式，提供更好的性能和无障碍访问体验：
+
+```css
+/* 组件内置的焦点样式 */
+.tree-node:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+  background-color: #eff6ff;
+}
+
+/* 自定义焦点样式 */
+.tree-node:focus {
+  outline: 2px solid #10b981;
+  background-color: #ecfdf5;
+  border-radius: 0.375rem;
+}
+```
+
 ### 主题变量
 
 组件支持通过 CSS 变量进行主题定制：
@@ -404,6 +472,7 @@ import 'vue3-super-tree/style.css'
   --tree-selected-color: white;
   --tree-focus-bg: #eff6ff;
   --tree-focus-color: #1e40af;
+  --tree-focus-outline: #3b82f6;
 }
 ```
 
@@ -435,6 +504,23 @@ import 'vue3-super-tree/style.css'
 - **Vite** - 快速的前端构建工具
 - **Tailwind CSS** - 实用优先的 CSS 框架
 - **Lucide Icons** - 美观的图标库
+
+## ⚡ 性能优化
+
+### 生产构建优化
+
+组件在生产环境下自动进行以下优化：
+
+- **🗑️ 调试日志移除** - 自动移除所有 `console.log` 调试信息
+- **📦 代码压缩** - 使用 Terser 进行代码压缩和混淆
+- **🌳 Tree Shaking** - 移除未使用的代码，减小包体积
+- **🎯 原生焦点管理** - 使用浏览器原生 `:focus` 伪类，减少 JavaScript 开销
+
+### 运行时性能
+
+- **⚡ 虚拟滚动** - 大数据量时自动启用虚拟滚动
+- **🔄 智能更新** - 只更新变化的节点，避免全量重渲染
+- **💾 内存优化** - 及时清理事件监听器和引用
 
 ## 📁 项目结构
 
@@ -532,12 +618,14 @@ pnpm run lint:fix
 
 ## 📊 包信息
 
-- **当前版本**: v1.0.1
-- **包大小**: ~224KB
+- **当前版本**: v1.2.0
+- **包大小**: ~220KB (生产优化后)
 - **支持的 Vue 版本**: 3.4+
 - **TypeScript 支持**: ✅
 - **Tree Shaking**: ✅
 - **SSR 支持**: ✅
+- **原生焦点管理**: ✅
+- **自动拖拽更新**: ✅
 
 ---
 

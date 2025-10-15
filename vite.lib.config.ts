@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { resolve } from 'path'
 import dts from 'vite-plugin-dts'
+import removeConsole from 'vite-plugin-remove-console'
 
 // 库构建配置
 export default defineConfig({
@@ -15,7 +16,9 @@ export default defineConfig({
       exclude: ['src/**/*.test.*', 'src/**/*.spec.*', 'src/pages/**/*', 'src/router/**/*', 'src/main.ts', 'src/App.vue'],
       outDir: 'dist',
       tsconfigPath: './tsconfig.json'
-    })
+    }),
+    // 在生产环境中移除 console.log
+    removeConsole()
   ],
   build: {
     lib: {

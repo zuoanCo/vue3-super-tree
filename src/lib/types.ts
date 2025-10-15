@@ -217,7 +217,11 @@ export interface TreeProps {
   /** 展开状态 */
   expandedKeys?: TreeExpandedKeys;
   /** 是否启用拖拽 */
+  dragdrop?: boolean;
+  /** 拖拽范围 */
   dragdropScope?: string;
+  /** 是否自动更新数据（拖拽时自动处理数据更新） */
+  autoUpdate?: boolean;
   /** 是否显示加载状态 */
   loading?: boolean;
   /** 加载文本 */
@@ -304,6 +308,8 @@ export interface TreeEmits {
   'update:expandedKeys': [value: TreeExpandedKeys];
   /** v-model 支持 */
   'update:modelValue': [value: TreeSelectionKeys];
+  /** 更新树数据（自动更新模式下使用） */
+  'update:value': [value: TreeNode[]];
 }
 
 // 工具函数类型

@@ -26,6 +26,10 @@ import { TreePine, ArrowRight, Github, Star } from 'lucide-vue-next'
             <span>查看演示</span>
             <ArrowRight :size="16" />
           </RouterLink>
+          <RouterLink to="/auto-update" class="btn-secondary">
+            <span>自动更新示例</span>
+            <ArrowRight :size="16" />
+          </RouterLink>
           <a href="https://github.com" class="btn-secondary" target="_blank">
             <Github :size="16" />
             <span>GitHub</span>

@@ -53,7 +53,7 @@
         :is-selected="isNodeSelected(node)"
         :is-partially-selected="isNodePartiallySelected(node)"
         :is-expanded="isNodeExpanded(node)"
-        :is-focused="isNodeFocused(node)"
+
         :drag-indicator-class="getDragIndicatorClass(node)"
         :draggable-nodes="isDragDropEnabled"
         :selected-background-color="selectedBackgroundColor"
@@ -87,6 +87,7 @@ import { useDragDrop } from '../composables/useDragDrop'
 import { useSelection } from '../composables/useSelection'
 import { useFocus } from '../composables/useFocus'
 import { useFilter } from '../composables/useFilter'
+import { moveTreeNode } from '../lib/utils'
 import type {
   TreeNode as TreeNodeType,
   TreeProps,
@@ -108,6 +109,8 @@ const props = withDefaults(defineProps<TreeProps>(), {
   value: () => [],
   id: undefined,
   selectionMode: 'single',
+  dragdrop: false,
+  autoUpdate: false,
   metaKeySelection: true,
   propagateSelectionUp: true,
   propagateSelectionDown: true,
@@ -173,6 +176,7 @@ const emit = defineEmits<{
   'update:selectionKeys': [value: any];
   'update:expandedKeys': [value: any];
   'update:modelValue': [value: any];
+  'update:value': [value: TreeNodeType[]];
 }>()
 
 // 响应式数据
@@ -243,19 +247,17 @@ const {
   setSelectionKeys
 } = useSelection(computed(() => props.value || []), ref(props.selectionMode), props.modelValue || props.selectionKeys)
 
-// 焦点管理
+// 键盘导航管理
 const {
-  focusedNode,
-  focusedNodeKey,
-  hasFocus,
-  focusNode,
-  clearFocus,
-  isFocused,
+  focusableNodes,
   focusNext,
   focusPrevious,
   focusFirst,
   focusLast,
-  handleKeyDown
+  handleKeyDown,
+  focusElementByNodeKey,
+  getCurrentFocusedElement,
+  getCurrentFocusedNodeKey
 } = useFocus(computed(() => props.value || []))
 
 const {
@@ -352,9 +354,7 @@ const isNodePartiallySelected = (node: TreeNodeType): boolean => {
   return isNodePartiallySelectedNew(node)
 }
 
-const isNodeFocused = (node: TreeNodeType): boolean => {
-  return isFocused(node)
-}
+
 
 const isNodeExpanded = (node: TreeNodeType): boolean => {
   return expandedKeys.value?.[node.key] === true
@@ -366,15 +366,6 @@ const getDragIndicatorClass = (node: TreeNodeType): string => {
 
 // 事件处理
 const handleNodeClick = (event: TreeNodeClickEvent) => {
-  // 设置焦点
-  const focusResult = focusNode(event.node, event.originalEvent)
-  if (focusResult?.focusEvent) {
-    emit('node-focus', focusResult.focusEvent)
-  }
-  if (focusResult?.blurEvent) {
-    emit('node-blur', focusResult.blurEvent)
-  }
-  
   emit('node-click', event)
 }
 
@@ -516,10 +507,33 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
     
     // 重置拖拽状态
     resetDragState()
+    
+    // 自动更新模式：自动处理数据更新
+    if (props.autoUpdate && !event.isCrossTree) {
+      try {
+        // 使用 moveTreeNode 更新数据
+        const updatedData = moveTreeNode(
+          props.value,
+          event.dragNode.key,
+          event.dropNode.key,
+          event.dropPosition
+        )
+        
+        // 触发 update:value 事件更新父组件数据
+        emit('update:value', updatedData)
+      } catch (error) {
+        console.error('自动更新数据失败:', error)
+      }
+    }
   }
   
-  // 只触发一次拖拽事件，让外部决定是否接受
+  // 触发拖拽事件
   emit('node-drop', event)
+  
+  // 自动更新模式：自动接受拖拽操作
+  if (props.autoUpdate && !event.isCrossTree) {
+    event.accept()
+  }
 }
 
 // 根级别拖拽事件处理
@@ -797,11 +811,9 @@ provide('tree', {
   props,
   selectionKeys: newSelectionKeys,
   expandedKeys,
-  focusedNode,
   isNodeSelected,
   isNodePartiallySelected,
   isNodeExpanded,
-  isNodeFocused,
   getDragIndicatorClass,
   onDragStart,
   onDragEnd,
@@ -809,8 +821,6 @@ provide('tree', {
   onDragOver,
   onDragLeave,
   onDrop,
-  focusNode,
-  clearFocus,
   emitNodeDragFrom,
   emitNodeDragTo
 })
@@ -858,13 +868,11 @@ defineExpose({
   scrollToNode,
   clearSelection: newClearSelection,
   resetState,
-  focusNode,
-  clearFocus,
   focusNext,
   focusPrevious,
   focusFirst,
   focusLast,
-  getFocusedNode: () => focusedNode.value,
+  getCurrentFocusedNodeKey,
   emitNodeDragFrom,
   emitNodeDragTo
 })

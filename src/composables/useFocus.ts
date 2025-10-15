@@ -1,88 +1,56 @@
-import { ref, computed, nextTick, type Ref } from 'vue'
-import type { TreeNode, TreeNodeFocusEvent, TreeNodeBlurEvent, KeyboardHandleResult, UseFocusReturn } from '../lib/types'
-import { findTreeNode, traverseTree } from '../lib/utils'
+import { computed, nextTick, type Ref } from 'vue'
+import type { TreeNode, KeyboardHandleResult } from '../lib/types'
+import { traverseTree } from '../lib/utils'
 
 /**
- * 焦点管理 Composable
- * 专门处理树节点的焦点状态和键盘导航
+ * 简化的焦点管理 Composable
+ * 只处理键盘导航，焦点样式完全依赖浏览器原生 :focus 伪类
  */
-export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
-  // 焦点状态
-  const focusedNode = ref<TreeNode | null>(null)
-  const focusedNodeKey = ref<string | number | null>(null)
-
-  // 计算属性
-  const hasFocus = computed(() => focusedNode.value !== null)
-  
+export function useFocus(nodes: Ref<TreeNode[]>) {
+  // 计算属性 - 只获取可聚焦的叶子节点（文件）
   const focusableNodes = computed(() => {
     const focusable: TreeNode[] = []
     traverseTree(nodes.value, (node) => {
-      if (node.selectable !== false) {
+      // 只有叶子节点（文件）才能被聚焦
+      if (node.selectable !== false && (!node.children || node.children.length === 0)) {
         focusable.push(node)
       }
     })
     return focusable
   })
 
-  const currentFocusIndex = computed(() => {
-    if (!focusedNode.value) return -1
-    return focusableNodes.value.findIndex(node => node.key === focusedNode.value?.key)
-  })
-
-  // 焦点方法
-  const focusNode = (node: TreeNode | null, event?: Event) => {
-    const previousNode = focusedNode.value
-    
-    // 如果是同一个节点，不需要处理
-    if (previousNode?.key === node?.key) return null
-    
-    // 失去焦点事件
-    let blurEvent: TreeNodeBlurEvent | null = null
-    if (previousNode) {
-      blurEvent = {
-        originalEvent: event || new Event('blur'),
-        node: previousNode
-      }
-    }
-    
-    // 设置新焦点
-    focusedNode.value = node
-    focusedNodeKey.value = node?.key || null
-    
-    // 获得焦点事件
-    let focusEvent: TreeNodeFocusEvent | null = null
-    if (node) {
-      focusEvent = {
-        originalEvent: event || new Event('focus'),
-        node
-      }
-    }
-    
-    return {
-      blurEvent,
-      focusEvent
-    }
+  // DOM 操作辅助函数
+  const getCurrentFocusedElement = (): HTMLElement | null => {
+    return document.activeElement as HTMLElement
   }
 
-  const clearFocus = (event?: Event) => {
-    return focusNode(null, event)
-  }
-
-  const focusNodeByKey = (key: string | number, event?: Event) => {
-    const node = findTreeNode(nodes.value, key)
-    if (node) {
-      return focusNode(node, event)
+  const getCurrentFocusedNodeKey = (): string | number | null => {
+    const activeElement = getCurrentFocusedElement()
+    if (activeElement) {
+      // 从 DOM 元素获取节点 key
+      const nodeKey = activeElement.closest('[data-node-key]')?.getAttribute('data-node-key')
+      return nodeKey || null
     }
     return null
   }
 
-  const isFocused = (node: TreeNode) => {
-    return focusedNode.value?.key === node.key
+  const getCurrentFocusIndex = (): number => {
+    const currentKey = getCurrentFocusedNodeKey()
+    if (!currentKey) return -1
+    return focusableNodes.value.findIndex(node => String(node.key) === currentKey)
   }
 
-  // 键盘导航方法
+  const focusElementByNodeKey = async (nodeKey: string | number) => {
+    await nextTick()
+    const element = document.querySelector(`[data-node-key="${nodeKey}"]`) as HTMLElement
+    if (element) {
+      element.focus()
+    }
+  }
+
+  // 键盘导航方法 - 直接操作 DOM 焦点
   const focusNext = (event?: Event) => {
-    const currentIndex = currentFocusIndex.value
+    const currentIndex = getCurrentFocusIndex()
     const focusableList = focusableNodes.value
     
     if (focusableList.length === 0) return null
@@ -92,11 +60,13 @@ export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
       nextIndex = 0 // 循环到第一个
     }
     
-    return focusNode(focusableList[nextIndex], event)
+    const nextNode = focusableList[nextIndex]
+    focusElementByNodeKey(nextNode.key)
+    return nextNode
   }
 
   const focusPrevious = (event?: Event) => {
-    const currentIndex = currentFocusIndex.value
+    const currentIndex = getCurrentFocusIndex()
     const focusableList = focusableNodes.value
     
     if (focusableList.length === 0) return null
@@ -106,13 +76,17 @@ export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
       prevIndex = focusableList.length - 1 // 循环到最后一个
     }
     
-    return focusNode(focusableList[prevIndex], event)
+    const prevNode = focusableList[prevIndex]
+    focusElementByNodeKey(prevNode.key)
+    return prevNode
   }
 
   const focusFirst = (event?: Event) => {
     const focusableList = focusableNodes.value
     if (focusableList.length > 0) {
-      return focusNode(focusableList[0], event)
+      const firstNode = focusableList[0]
+      focusElementByNodeKey(firstNode.key)
+      return firstNode
     }
     return null
   }
@@ -120,31 +94,41 @@ export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
   const focusLast = (event?: Event) => {
     const focusableList = focusableNodes.value
     if (focusableList.length > 0) {
-      return focusNode(focusableList[focusableList.length - 1], event)
+      const lastNode = focusableList[focusableList.length - 1]
+      focusElementByNodeKey(lastNode.key)
+      return lastNode
     }
     return null
   }
 
   // 键盘事件处理
   const handleKeyDown = (event: KeyboardEvent): KeyboardHandleResult => {
-    if (!focusedNode.value) return null
+    const currentKey = getCurrentFocusedNodeKey()
+    if (!currentKey) return null
+
+    const currentNode = focusableNodes.value.find(node => String(node.key) === currentKey)
+    if (!currentNode) return null
 
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault()
-        return focusNext(event)
+        focusNext(event)
+        return { type: 'navigate', event }
       
       case 'ArrowUp':
         event.preventDefault()
-        return focusPrevious(event)
+        focusPrevious(event)
+        return { type: 'navigate', event }
       
       case 'Home':
         event.preventDefault()
-        return focusFirst(event)
+        focusFirst(event)
+        return { type: 'navigate', event }
       
       case 'End':
         event.preventDefault()
-        return focusLast(event)
+        focusLast(event)
+        return { type: 'navigate', event }
       
       case 'Enter':
       case ' ':
@@ -152,50 +136,18 @@ export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
         // 返回当前焦点节点，让父组件处理选择逻辑
         return {
           type: 'activate',
-          node: focusedNode.value,
+          node: currentNode,
           event
         }
-      
-      case 'Escape':
-        event.preventDefault()
-        return clearFocus(event)
       
       default:
         return null
     }
   }
 
-  // DOM 焦点管理
-  const focusElement = async (element: HTMLElement | null) => {
-    if (element) {
-      await nextTick()
-      element.focus()
-    }
-  }
-
-  const scrollIntoView = async (element: HTMLElement | null) => {
-    if (element) {
-      await nextTick()
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest'
-      })
-    }
-  }
-
   return {
-    // 状态
-    focusedNode,
-    focusedNodeKey,
-    hasFocus,
+    // 计算属性
     focusableNodes,
-    currentFocusIndex,
-    
-    // 焦点方法
-    focusNode,
-    clearFocus,
-    focusNodeByKey,
-    isFocused,
     
     // 键盘导航
     focusNext,
@@ -205,7 +157,8 @@ export function useFocus(nodes: Ref<TreeNode[]>): UseFocusReturn {
     handleKeyDown,
     
     // DOM 操作
-    focusElement,
-    scrollIntoView
+    focusElementByNodeKey,
+    getCurrentFocusedElement,
+    getCurrentFocusedNodeKey
   }
 }
