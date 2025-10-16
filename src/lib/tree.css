@@ -211,10 +211,11 @@
 
 .p-tree-node-toggler-icon {
   transition: transform 0.2s ease-in-out;
+  transform: rotate(0deg); /* 默认状态：向右的三角形 */
 }
 
 .p-tree-node-toggler-icon-expanded {
-  transform: rotate(90deg);
+  transform: rotate(90deg); /* 展开状态：向下的三角形 */
 }
 
 /* 复选框 */

@@ -4,7 +4,14 @@ import type {
   TreeDropPosition, 
   DragDropState,
   TreeNodeDropEvent,
-  UseDragDropReturn
+  UseDragDropReturn,
+  CrossTreeDragStartEvent,
+  CrossTreeDragEnterEvent,
+  CrossTreeDragOverEvent,
+  CrossTreeDragLeaveEvent,
+  CrossTreeDropEvent,
+  CrossTreeDragEndEvent,
+  CrossTreeDragCancelEvent
 } from '../lib/types'
 import { canDropNode, canCrossTreeDrop } from '../lib/utils'
 
@@ -33,7 +40,8 @@ export function useDragDrop(
     dropPosition?: string
     dropNodeLabel?: string
     isCrossTree?: boolean
-  } | null) => void
+  } | null) => void,
+  emitCrossTreeEvent?: (eventName: string, event: any) => void
 ): UseDragDropReturn {
   console.log('🔧 useDragDrop 初始化:', { dragdropScope, treeId })
   // 拖拽状态
@@ -48,6 +56,12 @@ export function useDragDrop(
     targetTreeId: undefined
   })
 
+  // 跨树拖拽状态跟踪
+  const crossTreeState = ref({
+    hasEnteredTarget: false,
+    lastTargetTreeId: null as string | null
+  })
+
   // 计算属性
   const isDragging = computed(() => dragState.value.isDragging)
   const dragNode = computed(() => dragState.value.dragNode)
@@ -58,10 +72,28 @@ export function useDragDrop(
   const clearAllDropIndicators = (treeContainer?: HTMLElement) => {
     // 如果指定了容器，只清除该容器内的指示器
     const container = treeContainer || document
-    const indicators = container.querySelectorAll('.p-tree-drop-indicator, .p-tree-cross-tree-drop')
     
-    indicators.forEach(element => {
-      element.classList.remove('p-tree-drop-indicator', 'p-tree-cross-tree-drop')
+    // 查找所有可能包含拖拽状态类的元素
+    const allElements = container.querySelectorAll('*')
+    
+    allElements.forEach(element => {
+      // 移除所有拖拽指示器类
+      element.classList.remove(
+        'p-tree-drop-indicator',
+        'p-tree-cross-tree-drop',
+        'p-tree-drop-inside',
+        'p-tree-drop-above',
+        'p-tree-drop-below',
+        'p-tree-drop-before',
+        'p-tree-drop-after',
+        'drop-inside',
+        'drop-above', 
+        'drop-below',
+        'drop-root',
+        'cross-tree-drop'
+      )
+      
+      // 移除拖拽位置属性
       element.removeAttribute('data-drop-position')
     })
   }
@@ -133,6 +165,23 @@ export function useDragDrop(
     const target = event.target as HTMLElement
     target.classList.add('p-tree-node-dragging')
     
+    // 触发跨树拖拽开始事件
+    if (emitCrossTreeEvent && sourceTreeId) {
+      const crossTreeDragStartEvent: CrossTreeDragStartEvent = {
+        originalEvent: event,
+        dragNode: node,
+        sourceTreeId,
+        isCrossTree: false, // 开始时还不知道是否跨树
+        timestamp: Date.now(),
+        startPosition: {
+          x: event.clientX,
+          y: event.clientY
+        }
+      }
+      emitCrossTreeEvent('cross-tree-drag-start', crossTreeDragStartEvent)
+      console.log('🎯 触发 cross-tree-drag-start 事件:', crossTreeDragStartEvent)
+    }
+    
     console.log('✅ 拖拽开始完成，状态:', dragState.value)
   }
 
@@ -144,6 +193,46 @@ export function useDragDrop(
 
     // 清除所有残留的占位样式
     clearAllDropIndicators()
+
+    // 触发跨树拖拽结束事件
+    if (emitCrossTreeEvent && globalDragState.value.dragNode) {
+      const isCrossTree = globalDragState.value.sourceTreeId !== globalDragState.value.targetTreeId
+      
+      // 检查是否是取消操作（按ESC键或其他取消情况）
+      const isCancelled = event.type === 'keydown' && (event as unknown as KeyboardEvent).key === 'Escape'
+      
+      if (isCancelled && isCrossTree) {
+        // 触发跨树拖拽取消事件
+        const crossTreeDragCancelEvent: CrossTreeDragCancelEvent = {
+          originalEvent: event,
+          dragNode: globalDragState.value.dragNode,
+          sourceTreeId: globalDragState.value.sourceTreeId || '',
+          targetTreeId: globalDragState.value.targetTreeId,
+          dropNode: globalDragState.value.dropNode,
+          dropPosition: globalDragState.value.dropPosition,
+          isCrossTree: true,
+          timestamp: Date.now(),
+          reason: 'escape'
+        }
+        emitCrossTreeEvent('cross-tree-drag-cancel', crossTreeDragCancelEvent)
+        console.log('🎯 触发 cross-tree-drag-cancel 事件:', crossTreeDragCancelEvent)
+      } else {
+        // 触发跨树拖拽结束事件
+        const crossTreeDragEndEvent: CrossTreeDragEndEvent = {
+          originalEvent: event,
+          dragNode: globalDragState.value.dragNode,
+          sourceTreeId: globalDragState.value.sourceTreeId || '',
+          targetTreeId: globalDragState.value.targetTreeId,
+          dropNode: globalDragState.value.dropNode,
+          dropPosition: globalDragState.value.dropPosition,
+          isCrossTree,
+          timestamp: Date.now(),
+          success: false // 默认为失败，成功的情况在 onDrop 中处理
+        }
+        emitCrossTreeEvent('cross-tree-drag-end', crossTreeDragEndEvent)
+        console.log('🎯 触发 cross-tree-drag-end 事件:', crossTreeDragEndEvent)
+      }
+    }
 
     // 重置本地拖拽状态
     dragState.value = {
@@ -168,6 +257,12 @@ export function useDragDrop(
       sourceTreeId: undefined,
       targetTreeId: undefined
     }
+
+    // 重置跨树状态
+    crossTreeState.value = {
+      hasEnteredTarget: false,
+      lastTargetTreeId: null
+    }
   }
 
   // 拖拽进入
@@ -183,6 +278,13 @@ export function useDragDrop(
   // 拖拽悬停
   const onDragOver = (event: DragEvent, node: TreeNode, treeId: string) => {
     event.preventDefault()
+    
+    // 检查是否有拖拽节点（本地或全局）
+    const currentDragNode = dragState.value.dragNode || globalDragState.value.dragNode
+    if (!currentDragNode) {
+      console.log('❌ onDragOver: 没有拖拽节点')
+      return
+    }
     
     const target = event.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
@@ -206,14 +308,18 @@ export function useDragDrop(
     console.log('📍 位置计算:', {
       node: node.label,
       position,
-      percentage: Math.round(percentage * 100) + '%'
+      percentage: Math.round(percentage * 100) + '%',
+      dragNode: currentDragNode.key
     })
     
+    // 获取源树ID（优先使用全局状态，用于跨树拖拽）
+    const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
+    
     // 跨树拖拽验证
-    if (dragState.value.sourceTreeId && dragState.value.sourceTreeId !== treeId) {
-      const dragNode = dragState.value.dragNode
-      if (!dragNode || !canCrossTreeDrop(dragNode, node, position, dragState.value.sourceTreeId, treeId)) {
+    if (sourceTreeId && sourceTreeId !== treeId) {
+      if (!canCrossTreeDrop(currentDragNode, node, position, sourceTreeId, treeId)) {
         event.dataTransfer!.dropEffect = 'none'
+        console.log('❌ 跨树拖拽验证失败')
         return
       }
     }
@@ -240,16 +346,67 @@ export function useDragDrop(
     clearAllDropIndicators()
     
     // 添加拖拽指示器样式
-    target.classList.add(`drop-${position}`)
+    target.classList.add(`p-tree-drop-${position}`)
     
     // 跨树拖拽样式
-    if (dragState.value.sourceTreeId !== treeId) {
-      target.classList.add('cross-tree-drop')
+    if (sourceTreeId !== treeId) {
+      target.classList.add('p-tree-cross-tree-drop')
+    }
+    
+    // 触发悬停变化事件
+    if (onHoverChange) {
+      onHoverChange({
+        targetTreeId: treeId,
+        dropPosition: position,
+        dropNodeLabel: node.label,
+        isCrossTree: sourceTreeId !== treeId
+      })
+    }
+
+    // 跨树拖拽事件处理
+    if (emitCrossTreeEvent && sourceTreeId && sourceTreeId !== treeId) {
+      // 检查是否首次进入目标树
+      if (!crossTreeState.value.hasEnteredTarget || crossTreeState.value.lastTargetTreeId !== treeId) {
+        // 触发跨树拖拽进入事件
+        const crossTreeDragEnterEvent: CrossTreeDragEnterEvent = {
+          originalEvent: event,
+          dragNode: currentDragNode,
+          sourceTreeId,
+          targetTreeId: treeId,
+          dropNode: node,
+          dropPosition: position,
+          isCrossTree: true,
+          timestamp: Date.now()
+        }
+        emitCrossTreeEvent('cross-tree-drag-enter', crossTreeDragEnterEvent)
+        console.log('🎯 触发 cross-tree-drag-enter 事件:', crossTreeDragEnterEvent)
+        
+        crossTreeState.value.hasEnteredTarget = true
+        crossTreeState.value.lastTargetTreeId = treeId
+      }
+
+      // 触发跨树拖拽悬停事件
+      const crossTreeDragOverEvent: CrossTreeDragOverEvent = {
+        originalEvent: event,
+        dragNode: currentDragNode,
+        sourceTreeId,
+        targetTreeId: treeId,
+        dropNode: node,
+        dropPosition: position,
+        isCrossTree: true,
+        timestamp: Date.now(),
+        mousePosition: {
+          x: event.clientX,
+          y: event.clientY
+        }
+      }
+      emitCrossTreeEvent('cross-tree-drag-over', crossTreeDragOverEvent)
+      console.log('🎯 触发 cross-tree-drag-over 事件:', crossTreeDragOverEvent)
     }
   }
 
   // 拖拽离开
-  const onDragLeave = (event: DragEvent) => {
+  const onDragLeave = (event: DragEvent, node?: TreeNode, treeId?: string) => {
     // 检查是否真的离开了元素
     const target = event.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
@@ -257,10 +414,32 @@ export function useDragDrop(
     const y = event.clientY
     
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      // 移除放置指示器样式
-      target.classList.remove('p-tree-drop-indicator')
-      target.classList.remove('p-tree-cross-tree-drop')
-      target.removeAttribute('data-drop-position')
+      // 清除所有拖拽指示器样式
+      clearAllDropIndicators()
+      
+      // 触发跨树拖拽离开事件
+      if (emitCrossTreeEvent && node && treeId) {
+        const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
+        const currentDragNode = dragState.value.dragNode || globalDragState.value.dragNode
+        
+        if (sourceTreeId && sourceTreeId !== treeId && currentDragNode) {
+          const crossTreeDragLeaveEvent: CrossTreeDragLeaveEvent = {
+            originalEvent: event,
+            dragNode: currentDragNode,
+            sourceTreeId,
+            targetTreeId: treeId,
+            dropNode: node,
+            isCrossTree: true,
+            timestamp: Date.now()
+          }
+          emitCrossTreeEvent('cross-tree-drag-leave', crossTreeDragLeaveEvent)
+          console.log('🎯 触发 cross-tree-drag-leave 事件:', crossTreeDragLeaveEvent)
+          
+          // 重置跨树状态
+          crossTreeState.value.hasEnteredTarget = false
+          crossTreeState.value.lastTargetTreeId = null
+        }
+      }
       
       dragState.value.dropNode = null
       dragState.value.dropPosition = null
@@ -362,6 +541,41 @@ export function useDragDrop(
       return null
     }
 
+    // 触发跨树拖拽放置事件
+    if (emitCrossTreeEvent && isCrossTree && sourceTreeId && targetTreeId) {
+      const crossTreeDropEvent: CrossTreeDropEvent = {
+        originalEvent: event,
+        dragNode,
+        sourceTreeId,
+        targetTreeId,
+        dropNode: node,
+        dropPosition,
+        dropIndex: 0, // 这个值需要根据实际位置计算
+        isCrossTree: true,
+        timestamp: Date.now(),
+        accept: () => {
+          console.log('✅ Cross-tree drop accepted:', { 
+            dragNode, 
+            dropNode: node, 
+            dropPosition,
+            sourceTreeId,
+            targetTreeId
+          })
+        },
+        reject: () => {
+          console.log('❌ Cross-tree drop rejected:', { 
+            dragNode, 
+            dropNode: node, 
+            dropPosition,
+            sourceTreeId,
+            targetTreeId
+          })
+        }
+      }
+      emitCrossTreeEvent('cross-tree-drop', crossTreeDropEvent)
+      console.log('🎯 触发 cross-tree-drop 事件:', crossTreeDropEvent)
+    }
+
     // 创建拖拽事件对象
     const dropEvent: TreeNodeDropEvent = {
       originalEvent: event,
@@ -382,6 +596,64 @@ export function useDragDrop(
           targetTreeId,
           isCrossTree
         })
+        
+        // 清理所有拖拽状态指示器
+        clearAllDropIndicators()
+        
+        // 重置拖拽状态
+        resetDragState()
+        
+        // 如果是跨树拖拽成功，触发成功的结束事件
+        if (emitCrossTreeEvent && isCrossTree && sourceTreeId && targetTreeId) {
+          const successEndEvent: CrossTreeDragEndEvent = {
+            originalEvent: event,
+            dragNode,
+            sourceTreeId,
+            targetTreeId,
+            dropNode: node,
+            dropPosition,
+            isCrossTree: true,
+            timestamp: Date.now(),
+            success: true
+          }
+          emitCrossTreeEvent('cross-tree-drag-end', successEndEvent)
+          console.log('🎯 触发成功的 cross-tree-drag-end 事件:', successEndEvent)
+        }
+      },
+      reject: () => {
+        // 拒绝拖拽操作的回调
+        console.log('❌ Drop rejected:', { 
+          dragNode, 
+          dropNode: node, 
+          dropPosition,
+          sourceTreeId,
+          targetTreeId,
+          isCrossTree
+        })
+        
+        // 清理所有拖拽状态指示器
+        clearAllDropIndicators()
+        
+        // 重置拖拽状态
+        resetDragState()
+        
+        // 如果是跨树拖拽被拒绝，触发取消的结束事件
+        if (emitCrossTreeEvent && isCrossTree && sourceTreeId && targetTreeId) {
+          const cancelEndEvent: CrossTreeDragEndEvent = {
+            originalEvent: event,
+            dragNode,
+            sourceTreeId,
+            targetTreeId,
+            dropNode: node,
+            dropPosition,
+            isCrossTree: true,
+            timestamp: Date.now(),
+            success: false,
+            error: 'Drop rejected by user'
+          }
+          emitCrossTreeEvent('cross-tree-drag-end', cancelEndEvent)
+          console.log('🎯 触发拒绝的 cross-tree-drag-end 事件:', cancelEndEvent)
+        }
       }
     }
 
@@ -403,6 +675,11 @@ export function useDragDrop(
   // 获取拖拽指示器样式
   const getDragIndicatorClass = (node: TreeNode) => {
     const classes: string[] = []
+    
+    // 检查全局拖拽状态，如果全局状态已重置，则不返回任何拖拽样式
+    if (!globalDragState.value.isDragging && !globalDragState.value.dragNode) {
+      return ''
+    }
     
     if (dragState.value.dragNode?.key === node.key) {
       classes.push('p-tree-node-dragging')
@@ -461,4 +738,22 @@ export function useDragDrop(
     resetDragState,
     setDragScope
   }
+}
+
+/**
+ * 全局重置拖拽状态函数
+ * 用于在外部组件中重置全局拖拽状态
+ */
+export function resetGlobalDragState() {
+  globalDragState.value = {
+    dragNode: null,
+    dropNode: null,
+    dropPosition: null,
+    isDragging: false,
+    dragScope: undefined,
+    dragStartPosition: undefined,
+    sourceTreeId: undefined,
+    targetTreeId: undefined
+  }
+  console.log('🔄 全局拖拽状态已重置')
 }

@@ -7,6 +7,13 @@
 
 一个功能强大、高度可定制的 Vue 3 树形组件 npm 包，完全复刻 PrimeVue Tree 的功能特性，支持拖拽、多选、键盘导航等高级功能。
 
+## 🆕 v1.3.1 更新亮点
+
+- **🐛 修复跨树拖拽状态残留问题** - 修复跨树拖拽后展开文件夹时仍显示拖拽选中样式的问题
+- **🔄 增强全局拖拽状态管理** - 确保拖拽状态完全重置，避免状态残留
+- **⚡ 优化多Tree组件状态同步** - 改进多个Tree组件间的状态同步机制
+- **🎨 改进UI状态清理** - 完善拖拽操作完成后的UI状态清理逻辑
+
 ## 🚀 特性
 
 ### ✨ 核心功能
@@ -20,6 +27,7 @@
 - **🖱️ 智能拖拽排序** - 同树内节点拖拽重排，支持自动数据更新
 - **🔀 跨树拖拽** - 支持在不同树组件间拖拽节点
 - **⚡ 自动更新模式** - 拖拽操作自动更新数据源，无需手动处理
+- **🎯 跨树拖拽自动更新** - 完善的跨树拖拽数据同步，支持自动更新和手动确认两种模式
 - **⌨️ 键盘导航** - 完整的键盘操作支持（方向键、Enter、Space等）
 - **🔍 节点过滤** - 实时搜索和过滤节点
 - **⚡ 懒加载** - 支持动态加载子节点
@@ -171,6 +179,7 @@ const expandedKeys = ref<TreeExpandedKeys>({})
 | `expandedKeys` | `TreeExpandedKeys` | `{}` | 展开状态 |
 | `dragdropScope` | `string` | `undefined` | 拖拽作用域 |
 | `autoUpdate` | `boolean` | `false` | 拖拽时是否自动更新数据源 |
+| `crossTreeAutoUpdate` | `boolean` | `false` | 跨树拖拽时是否自动更新数据源 |
 | `filter` | `boolean` | `false` | 是否启用过滤 |
 | `filterMode` | `'lenient' \| 'strict'` | `'lenient'` | 过滤模式 |
 | `filterBy` | `string` | `'label'` | 过滤字段 |
@@ -193,6 +202,13 @@ const expandedKeys = ref<TreeExpandedKeys>({})
 | `node-drop` | `TreeNodeDropEvent` | 节点拖拽放置时触发 |
 | `node-drag-start` | `{ originalEvent, node }` | 开始拖拽时触发 |
 | `node-drag-end` | `{ originalEvent, node }` | 拖拽结束时触发 |
+| `cross-tree-drag-start` | `CrossTreeDragStartEvent` | 跨树拖拽开始时触发 |
+| `cross-tree-drag-enter` | `CrossTreeDragEnterEvent` | 拖拽节点进入目标树时触发 |
+| `cross-tree-drag-over` | `CrossTreeDragOverEvent` | 拖拽节点在目标树上方移动时触发 |
+| `cross-tree-drag-leave` | `CrossTreeDragLeaveEvent` | 拖拽节点离开目标树时触发 |
+| `cross-tree-drop` | `CrossTreeDropEvent` | 跨树拖拽放置时触发 |
+| `cross-tree-drag-end` | `CrossTreeDragEndEvent` | 跨树拖拽结束时触发（无论成功或失败） |
+| `cross-tree-drag-cancel` | `CrossTreeDragCancelEvent` | 跨树拖拽取消时触发（如按 ESC 键） |
 
 ### TreeNode 接口
 
@@ -346,6 +362,8 @@ const onNodeDrop = (event) => {
 
 ### 5. 跨树拖拽
 
+#### 基础跨树拖拽
+
 ```vue
 <template>
   <div class="flex gap-4">
@@ -377,6 +395,211 @@ const onCrossTreeDrop = (event) => {
 }
 </script>
 ```
+
+#### 完整跨树拖拽事件监听
+
+```vue
+<template>
+  <div class="flex gap-4">
+    <Tree
+      id="tree1"
+      :value="sourceData"
+      dragdropScope="cross-tree"
+      @node-drop="onCrossTreeDrop"
+      @cross-tree-drag-start="onCrossTreeDragStart"
+      @cross-tree-drag-enter="onCrossTreeDragEnter"
+      @cross-tree-drag-over="onCrossTreeDragOver"
+      @cross-tree-drag-leave="onCrossTreeDragLeave"
+      @cross-tree-drop="onCrossTreeDropEvent"
+      @cross-tree-drag-end="onCrossTreeDragEnd"
+      @cross-tree-drag-cancel="onCrossTreeDragCancel"
+    />
+    <Tree
+      id="tree2"
+      :value="targetData"
+      dragdropScope="cross-tree"
+      @node-drop="onCrossTreeDrop"
+      @cross-tree-drag-start="onCrossTreeDragStart"
+      @cross-tree-drag-enter="onCrossTreeDragEnter"
+      @cross-tree-drag-over="onCrossTreeDragOver"
+      @cross-tree-drag-leave="onCrossTreeDragLeave"
+      @cross-tree-drop="onCrossTreeDropEvent"
+      @cross-tree-drag-end="onCrossTreeDragEnd"
+      @cross-tree-drag-cancel="onCrossTreeDragCancel"
+    />
+  </div>
+</template>
+
+<script setup>
+import { Tree } from 'vue3-super-tree'
+import 'vue3-super-tree/style.css'
+
+// 跨树拖拽开始
+const onCrossTreeDragStart = (event) => {
+  console.log('跨树拖拽开始:', {
+    sourceTreeId: event.sourceTreeId,
+    dragNode: event.dragNode,
+    isCrossTree: event.isCrossTree,
+    timestamp: event.timestamp
+  })
+}
+
+// 拖拽节点进入目标树
+const onCrossTreeDragEnter = (event) => {
+  console.log('进入目标树:', {
+    sourceTreeId: event.sourceTreeId,
+    targetTreeId: event.targetTreeId,
+    dragNode: event.dragNode
+  })
+}
+
+// 拖拽节点在目标树上方移动（频繁触发）
+const onCrossTreeDragOver = (event) => {
+  // 由于频繁触发，通常只做必要的处理
+  console.log('在目标树上方移动')
+}
+
+// 拖拽节点离开目标树
+const onCrossTreeDragLeave = (event) => {
+  console.log('离开目标树:', {
+    targetTreeId: event.targetTreeId,
+    dragNode: event.dragNode
+  })
+}
+
+// 跨树拖拽放置
+const onCrossTreeDropEvent = (event) => {
+  console.log('跨树拖拽放置:', {
+    sourceTreeId: event.sourceTreeId,
+    targetTreeId: event.targetTreeId,
+    dragNode: event.dragNode,
+    dropNode: event.dropNode,
+    dropPosition: event.dropPosition
+  })
+}
+
+// 跨树拖拽结束
+const onCrossTreeDragEnd = (event) => {
+  console.log('跨树拖拽结束:', {
+    success: event.success,
+    sourceTreeId: event.sourceTreeId,
+    targetTreeId: event.targetTreeId
+  })
+}
+
+// 跨树拖拽取消（如按 ESC 键）
+const onCrossTreeDragCancel = (event) => {
+  console.log('跨树拖拽取消:', {
+    sourceTreeId: event.sourceTreeId,
+    dragNode: event.dragNode
+  })
+}
+
+// 传统的 node-drop 事件处理
+const onCrossTreeDrop = (event) => {
+  if (event.isCrossTree) {
+    event.accept()
+  }
+}
+</script>
+```
+
+#### 跨树拖拽自动更新
+
+`crossTreeAutoUpdate` 参数控制跨树拖拽时是否自动更新数据源。v1.3.0 版本完善了跨树拖拽的数据同步机制，确保在两种模式下都能正确更新数据：
+
+- **自动更新模式** (`crossTreeAutoUpdate: true`)：拖拽操作会自动调用 `accept()` 方法并同步更新源树和目标树的数据
+- **手动确认模式** (`crossTreeAutoUpdate: false`)：需要手动调用 `accept()` 或 `reject()` 方法，确认后才会更新数据
+
+```vue
+<template>
+  <div class="flex gap-4">
+    <!-- 自动更新模式 -->
+    <Tree
+      id="auto-tree1"
+      :value="autoData1"
+      :crossTreeAutoUpdate="true"
+      :dragdrop="true"
+      dragdropScope="auto-cross-tree"
+      @cross-tree-drop="onAutoUpdateDrop"
+    />
+    <Tree
+      id="auto-tree2"
+      :value="autoData2"
+      :crossTreeAutoUpdate="true"
+      :dragdrop="true"
+      dragdropScope="auto-cross-tree"
+      @cross-tree-drop="onAutoUpdateDrop"
+    />
+    
+    <!-- 手动控制模式 -->
+    <Tree
+      id="manual-tree1"
+      :value="manualData1"
+      :crossTreeAutoUpdate="false"
+      :dragdrop="true"
+      dragdropScope="manual-cross-tree"
+      @cross-tree-drop="onManualControlDrop"
+    />
+    <Tree
+      id="manual-tree2"
+      :value="manualData2"
+      :crossTreeAutoUpdate="false"
+      :dragdrop="true"
+      dragdropScope="manual-cross-tree"
+      @cross-tree-drop="onManualControlDrop"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Tree } from 'vue3-super-tree'
+import 'vue3-super-tree/style.css'
+
+const autoData1 = ref([...]) // 自动更新模式的源树数据
+const autoData2 = ref([...]) // 自动更新模式的目标树数据
+const manualData1 = ref([...]) // 手动控制模式的源树数据
+const manualData2 = ref([...]) // 手动控制模式的目标树数据
+
+// 自动更新模式：拖拽会自动完成数据同步
+const onAutoUpdateDrop = (event) => {
+  console.log('自动更新拖拽:', event)
+  // v1.3.0 版本已完善数据同步机制，无需手动处理数据更新
+  // 组件会自动调用 accept() 并更新源树和目标树的数据
+}
+
+// 手动控制模式：需要手动决定是否接受拖拽
+const onManualControlDrop = (event) => {
+  console.log('手动控制拖拽:', event)
+  
+  // 根据业务逻辑决定是否接受拖拽
+  const shouldAccept = validateDragOperation(event)
+  
+  if (shouldAccept) {
+    event.accept() // 接受拖拽，自动更新源树和目标树数据
+  } else {
+    event.reject() // 拒绝拖拽，不更新数据
+  }
+}
+
+const validateDragOperation = (event) => {
+  // 自定义验证逻辑
+  return event.dragNode.label !== '禁止拖拽的节点'
+}
+</script>
+```
+
+**使用场景：**
+
+- **自动更新模式** (`crossTreeAutoUpdate: true`)：适用于简单的拖拽操作，无需复杂验证
+- **手动控制模式** (`crossTreeAutoUpdate: false`)：适用于需要验证、确认或异步处理的拖拽操作
+
+**注意事项：**
+
+1. `crossTreeAutoUpdate` 只影响跨树拖拽，不影响同树内的拖拽操作
+2. 手动控制模式下，必须调用 `accept()` 或 `reject()` 方法，否则拖拽状态不会清理
+3. 可以与 `autoUpdate` 参数配合使用，分别控制同树和跨树的拖拽行为
 
 ### 6. 节点过滤
 
@@ -618,7 +841,7 @@ pnpm run lint:fix
 
 ## 📊 包信息
 
-- **当前版本**: v1.2.0
+- **当前版本**: v1.3.0
 - **包大小**: ~220KB (生产优化后)
 - **支持的 Vue 版本**: 3.4+
 - **TypeScript 支持**: ✅
@@ -626,6 +849,7 @@ pnpm run lint:fix
 - **SSR 支持**: ✅
 - **原生焦点管理**: ✅
 - **自动拖拽更新**: ✅
+- **跨树拖拽自动更新**: ✅
 
 ---
 

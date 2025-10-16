@@ -42,10 +42,15 @@
         :aria-label="isExpanded ? 'Collapse' : 'Expand'"
         tabindex="-1"
       >
-        <ChevronRight 
+        <svg 
           :class="togglerIconClasses"
-          :size="16"
-        />
+          width="16" 
+          height="16" 
+          viewBox="0 0 16 16" 
+          fill="currentColor"
+        >
+          <polygon points="6,4 6,12 10,8" />
+        </svg>
       </button>
       <span v-else class="p-tree-node-toggler-spacer"></span>
 
@@ -134,7 +139,7 @@
 
 <script setup lang="ts">
 import { computed, inject, type Component, onMounted, ref, nextTick } from 'vue'
-import { ChevronRight, Check, Minus, Loader2 } from 'lucide-vue-next'
+import { Check, Minus, Loader2 } from 'lucide-vue-next'
 import type { 
   TreeNode as TreeNodeType, 
   TreeSelectionMode,
@@ -467,24 +472,22 @@ const handleDragLeave = (event: DragEvent) => {
 const handleDrop = (event: DragEvent) => {
   event.preventDefault()
   
+  console.log('🎯 TreeNode handleDrop:', props.node.label)
+  
   // 调用父组件的拖拽放置方法
   let dropEvent: TreeNodeDropEvent | null = null
   if (tree.onDrop) {
     dropEvent = tree.onDrop(event, props.node)
+    console.log('📦 从 tree.onDrop 获得事件:', dropEvent)
   }
   
-  // 如果没有返回事件对象，创建一个默认的
-  if (!dropEvent) {
-    dropEvent = {
-      originalEvent: event,
-      dragNode: null as any,
-      dropNode: props.node,
-      dropIndex: 0,
-      dropPosition: 'inside',
-      accept: () => {}
-    }
+  // 如果没有返回事件对象或事件对象无效，不触发 node-drop 事件
+  if (!dropEvent || !dropEvent.dragNode) {
+    console.log('❌ 无效的拖拽事件，跳过 node-drop 触发')
+    return
   }
   
+  console.log('✅ 触发 node-drop 事件:', dropEvent)
   emit('node-drop', dropEvent)
 }
 

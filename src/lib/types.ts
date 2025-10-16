@@ -148,6 +148,98 @@ export interface TreeNodeDropEvent {
   isCrossTree?: boolean;
   /** 接受拖拽操作 */
   accept: () => void;
+  /** 拒绝拖拽操作的回调 */
+  reject: () => void;
+}
+
+// 跨树拖拽事件基础接口
+export interface CrossTreeDragEvent {
+  /** 原始拖拽事件 */
+  originalEvent: DragEvent;
+  /** 被拖拽的节点 */
+  dragNode: TreeNode;
+  /** 源树ID */
+  sourceTreeId: string;
+  /** 目标树ID（可选，某些事件可能没有目标树） */
+  targetTreeId?: string;
+  /** 放置目标节点（可选） */
+  dropNode?: TreeNode;
+  /** 放置位置（可选） */
+  dropPosition?: TreeDropPosition;
+  /** 是否跨树拖拽 */
+  isCrossTree: boolean;
+  /** 事件时间戳 */
+  timestamp: number;
+}
+
+// 跨树拖拽开始事件
+export interface CrossTreeDragStartEvent extends CrossTreeDragEvent {
+  /** 拖拽开始位置 */
+  startPosition: { x: number; y: number };
+}
+
+// 跨树拖拽进入事件
+export interface CrossTreeDragEnterEvent extends CrossTreeDragEvent {
+  /** 目标树ID */
+  targetTreeId: string;
+  /** 进入的目标节点 */
+  dropNode: TreeNode;
+}
+
+// 跨树拖拽悬停事件
+export interface CrossTreeDragOverEvent extends CrossTreeDragEvent {
+  /** 目标树ID */
+  targetTreeId: string;
+  /** 悬停的目标节点 */
+  dropNode: TreeNode;
+  /** 悬停位置 */
+  dropPosition: TreeDropPosition;
+  /** 鼠标位置 */
+  mousePosition: { x: number; y: number };
+}
+
+// 跨树拖拽离开事件
+export interface CrossTreeDragLeaveEvent extends CrossTreeDragEvent {
+  /** 离开的目标树ID */
+  targetTreeId: string;
+  /** 离开的目标节点 */
+  dropNode?: TreeNode;
+}
+
+// 跨树拖拽放置事件
+export interface CrossTreeDropEvent extends CrossTreeDragEvent {
+  /** 目标树ID */
+  targetTreeId: string;
+  /** 放置目标节点 */
+  dropNode: TreeNode;
+  /** 放置位置 */
+  dropPosition: TreeDropPosition;
+  /** 放置索引 */
+  dropIndex: number;
+  /** 接受拖拽操作的回调 */
+  accept: () => void;
+  /** 拒绝拖拽操作的回调 */
+  reject: () => void;
+}
+
+// 跨树拖拽结束事件
+export interface CrossTreeDragEndEvent extends CrossTreeDragEvent {
+  /** 是否成功放置 */
+  success: boolean;
+  /** 最终目标树ID（如果有） */
+  targetTreeId?: string;
+  /** 最终放置节点（如果有） */
+  dropNode?: TreeNode;
+  /** 错误信息（如果失败） */
+  error?: string;
+}
+
+// 跨树拖拽取消事件
+export interface CrossTreeDragCancelEvent extends CrossTreeDragEvent {
+  /** 取消原因 */
+  reason: 'escape' | 'invalid-drop' | 'user-cancel' | 'error';
+  /** 取消时的目标树ID（如果有） */
+  targetTreeId?: string;
 }
 
 export interface TreeLazyLoadEvent {
@@ -223,6 +315,8 @@ export interface TreeProps {
   dragdropScope?: string;
   /** 是否自动更新数据（拖拽时自动处理数据更新） */
   autoUpdate?: boolean;
+  /** 是否自动处理跨树拖拽数据更新 */
+  crossTreeAutoUpdate?: boolean;
   /** 是否显示加载状态 */
   loading?: boolean;
   /** 加载文本 */
@@ -303,6 +397,23 @@ export interface TreeEmits {
   'node-drag-start': [event: { originalEvent: DragEvent; node: TreeNode }];
   /** 节点拖拽结束事件 */
   'node-drag-end': [event: { originalEvent: DragEvent; node: TreeNode }];
+  
+  // 跨树拖拽事件
+  /** 跨树拖拽开始事件 */
+  'cross-tree-drag-start': [event: CrossTreeDragStartEvent];
+  /** 跨树拖拽进入事件 */
+  'cross-tree-drag-enter': [event: CrossTreeDragEnterEvent];
+  /** 跨树拖拽悬停事件 */
+  'cross-tree-drag-over': [event: CrossTreeDragOverEvent];
+  /** 跨树拖拽离开事件 */
+  'cross-tree-drag-leave': [event: CrossTreeDragLeaveEvent];
+  /** 跨树拖拽放置事件 */
+  'cross-tree-drop': [event: CrossTreeDropEvent];
+  /** 跨树拖拽结束事件 */
+  'cross-tree-drag-end': [event: CrossTreeDragEndEvent];
+  /** 跨树拖拽取消事件 */
+  'cross-tree-drag-cancel': [event: CrossTreeDragCancelEvent];
+  
   /** 选择状态更新 */
   'update:selectionKeys': [value: TreeSelectionKeys];
   /** 展开状态更新 */
