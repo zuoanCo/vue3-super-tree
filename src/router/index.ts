@@ -3,6 +3,9 @@ import HomePage from '@/pages/HomePage.vue'
 import TreeDemo from '@/pages/TreeDemo.vue'
 import UserTreeExample from '@/pages/UserTreeExample.vue'
 import AutoUpdateExample from '@/pages/AutoUpdateExample.vue'
+import CrossTreeAutoUpdateTest from '@/pages/CrossTreeAutoUpdateTest.vue'
+import SimpleAutoUpdateDemo from '@/pages/SimpleAutoUpdateDemo.vue'
+import QuickTest from '@/pages/QuickTest.vue'
 
 // 定义路由配置
 const routes = [
@@ -25,6 +28,21 @@ const routes = [
     path: '/auto-update',
     name: 'auto-update',
     component: AutoUpdateExample,
+  },
+  {
+    path: '/cross-tree-test',
+    name: 'cross-tree-test',
+    component: CrossTreeAutoUpdateTest,
+  },
+  {
+    path: '/simple-demo',
+    name: 'simple-demo',
+    component: SimpleAutoUpdateDemo,
+  },
+  {
+    path: '/quick-test',
+    name: 'quick-test',
+    component: QuickTest,
   },
   {
     path: '/about',

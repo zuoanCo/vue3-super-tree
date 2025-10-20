@@ -1,7 +1,7 @@
 <template>
   <div class="tree-demo">
     <!-- 调试信息 -->
-    <div style="background: red; color: white; padding: 10px; margin: 10px;">
+    <div style="background: #dbeafe; color: #1e40af; padding: 10px; margin: 10px; border: 1px solid #93c5fd; border-radius: 6px;">
       TreeDemo 组件已渲染 - {{ new Date().toLocaleTimeString() }}
     </div>
     <!-- 页面标题 -->
@@ -127,7 +127,7 @@
               </button>
               <button 
                 @click="clearAllSelections"
-                class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                class="px-3 py-1 bg-blue-200 text-blue-800 rounded text-sm hover:bg-blue-300"
               >
                 清空选择
               </button>
@@ -699,7 +699,7 @@
           
           <button 
             @click="testRealDrag"
-            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            class="px-4 py-2 bg-blue-200 text-blue-800 rounded hover:bg-blue-300 transition-colors"
           >
             🔥 真实拖拽测试
           </button>
@@ -1151,7 +1151,7 @@
                 <div class="info-grid">
                   <div class="info-item">
                     <span class="info-label">自动更新状态:</span>
-                    <span class="info-value" :class="crossTreeAutoUpdateEnabled ? 'text-green-600' : 'text-red-600'">
+                    <span class="info-value" :class="crossTreeAutoUpdateEnabled ? 'text-green-600' : 'text-blue-600'">
                       {{ crossTreeAutoUpdateEnabled ? '启用' : '禁用' }}
                     </span>
                   </div>
@@ -1185,7 +1185,7 @@
                       </button>
                       <button 
                         @click="rejectOperation(operation)"
-                        class="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                        class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs hover:bg-blue-300"
                       >
                         拒绝
                       </button>
@@ -1368,7 +1368,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, type Ref } from 'vue'
 import { Sun, Moon, Trash2, Folder, File, User, Settings, Database, Code } from 'lucide-vue-next'
 import Tree from '../components/Tree.vue'
 import { useTreeTheme, availableThemes } from '../lib/themes'
@@ -3256,7 +3256,7 @@ const clearEventLog = () => {
 }
 
 .clear-btn {
-  @apply flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors;
+  @apply flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors;
 }
 
 .log-content {

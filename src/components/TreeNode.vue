@@ -165,6 +165,7 @@ interface Props {
   selectedTextColor?: string
   focusBackgroundColor?: string
   focusTextColor?: string
+  treeId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -461,7 +462,7 @@ const handleDragEnter = (event: DragEvent) => {
 const handleDragOver = (event: DragEvent) => {
   console.log('🔥 DRAG OVER:', props.node.label)
   event.preventDefault()
-  tree.onDragOver(event, props.node)
+  tree.onDragOver(event, props.node, props.treeId || '')
 }
 
 const handleDragLeave = (event: DragEvent) => {
@@ -500,7 +501,7 @@ interface TreeContext {
   onDragStart?: (event: DragEvent, node: TreeNodeType) => void;
   onDragEnd?: (event: DragEvent) => void;
   onDragEnter?: (event: DragEvent, node: TreeNodeType) => void;
-  onDragOver?: (event: DragEvent, node: TreeNodeType) => void;
+  onDragOver?: (event: DragEvent, node: TreeNodeType, treeId: string) => void;
   onDragLeave?: (event: DragEvent) => void;
   onDrop?: (event: DragEvent, node: TreeNodeType) => TreeNodeDropEvent | null;
 }
@@ -592,148 +593,33 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 基础样式将在单独的 CSS 文件中定义 */
-.p-tree-node {
-  @apply list-none;
-}
+/* 移除所有Tailwind类，使用tree.css中的全局样式 */
+/* 这些样式现在由tree.css和主题系统统一管理 */
 
+/* 只保留组件特定的样式覆盖 */
 .p-tree-node-content {
-  @apply flex items-center py-1 px-2 cursor-pointer select-none;
-  @apply transition-colors duration-200;
+  /* 确保内联样式优先级 */
 }
 
-.p-tree-node-content.p-tree-node-selectable:hover {
-  @apply bg-blue-50;
+.p-tree-node-content[style*="background-color"] {
+  /* 内联样式会自动覆盖全局样式 */
 }
 
-.p-tree-node-content:hover:not([style*="background-color"]) {
-  @apply bg-gray-100;
+.p-tree-node-content[style*="color"] {
+  /* 内联样式会自动覆盖全局样式 */
 }
 
-/* 选中状态的默认样式 - 只在没有内联样式时生效 */
-.p-tree-node-selected .p-tree-node-content:not([style*="background-color"]) {
-  @apply bg-blue-100;
-}
-
-.p-tree-node-selected .p-tree-node-content:not([style*="color"]) {
-  @apply text-blue-900;
-}
-
-/* 焦点状态样式重置 - 移除边框和轮廓，但保留内联样式的优先级 */
+/* 焦点状态样式重置 - 确保与全局样式一致 */
 .p-tree-node-focused .p-tree-node-content {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
 }
 
-/* 选中且焦点状态 - 焦点优先，移除边框和轮廓 */
+/* 选中且焦点状态 - 确保与全局样式一致 */
 .p-tree-node-selected.p-tree-node-focused .p-tree-node-content {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;
-}
-
-/* 确保内联样式优先级最高 - 使用更高的选择器优先级 */
-.p-tree-node .p-tree-node-content[style*="background-color"] {
-  /* 内联样式会自动覆盖这里的样式 */
-}
-
-.p-tree-node .p-tree-node-content[style*="color"] {
-  /* 内联样式会自动覆盖这里的样式 */
-}
-
-.p-tree-node-indent {
-  @apply inline-block;
-}
-
-.p-tree-node-toggler {
-  @apply flex items-center justify-center w-6 h-6 rounded;
-  @apply hover:bg-gray-200 transition-colors duration-200;
-  @apply border-none bg-transparent cursor-pointer;
-}
-
-.p-tree-node-toggler-spacer {
-  @apply inline-block w-6 h-6;
-}
-
-.p-tree-node-toggler-icon {
-  @apply transition-transform duration-200;
-}
-
-.p-tree-node-toggler-icon-expanded {
-  @apply rotate-90;
-}
-
-.p-tree-node-checkbox {
-  @apply flex items-center justify-center w-5 h-5 mr-2 cursor-pointer;
-}
-
-.p-tree-node-checkbox-input {
-  @apply sr-only;
-}
-
-.p-tree-node-checkbox-box {
-  @apply w-4 h-4 border border-gray-300 rounded flex items-center justify-center;
-  @apply transition-colors duration-200;
-}
-
-.p-tree-node-checkbox-checked .p-tree-node-checkbox-box {
-  @apply bg-blue-600 border-blue-600 text-white;
-}
-
-.p-tree-node-checkbox-partial .p-tree-node-checkbox-box {
-  @apply bg-blue-100 border-blue-300 text-blue-600;
-}
-
-.p-tree-node-icon {
-  @apply flex items-center justify-center w-5 h-5 mr-2;
-}
-
-.p-tree-node-loading {
-  @apply flex items-center justify-center w-5 h-5 mr-2 text-blue-600;
-}
-
-.p-tree-node-label {
-  @apply flex-1 truncate;
-}
-
-.p-tree-node-children {
-  @apply list-none m-0 p-0;
-}
-
-/* 拖拽样式 */
-.p-tree-node-dragging {
-  @apply opacity-50;
-}
-
-.p-tree-drop-indicator {
-  @apply relative;
-}
-
-.p-tree-drop-indicator::before {
-  @apply absolute inset-0 bg-blue-100 border border-blue-300 rounded;
-  content: '';
-  pointer-events: none;
-}
-
-.p-tree-drop-above::before {
-  @apply -top-1 h-0.5 bg-blue-600;
-}
-
-.p-tree-drop-below::before {
-  @apply -bottom-1 h-0.5 bg-blue-600;
-}
-
-/* 跨树拖拽样式 */
-.p-tree-cross-tree-drop::before {
-  @apply border-green-400 bg-green-50;
-}
-
-.p-tree-cross-tree-drop.p-tree-drop-above::before {
-  @apply bg-green-600;
-}
-
-.p-tree-cross-tree-drop.p-tree-drop-below::before {
-  @apply bg-green-600;
 }
 </style>

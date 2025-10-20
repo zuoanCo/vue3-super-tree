@@ -487,7 +487,7 @@ export interface UseDragDropReturn {
   onDragStart: (event: DragEvent, node: TreeNode) => void;
   onDragEnd: (event: DragEvent) => void;
   onDragEnter: (event: DragEvent, node: TreeNode) => void;
-  onDragOver: (event: DragEvent, node: TreeNode, treeId?: string) => void;
+  onDragOver: (event: DragEvent, node: TreeNode, treeId: string) => void;
   onDragLeave: (event: DragEvent) => void;
   onDrop: (event: DragEvent, node: TreeNode) => TreeNodeDropEvent | null;
   

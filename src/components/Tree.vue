@@ -21,11 +21,24 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="!hasNodes" class="p-tree-empty">
+    <div 
+      v-else-if="!hasNodes" 
+      class="p-tree-empty"
+      :class="{ 'p-tree-empty-drag-over': isDragOverContainer }"
+      @dragover="handleEmptyDragOver"
+      @drop="handleEmptyDrop"
+      @dragenter="handleEmptyDragEnter"
+      @dragleave="handleEmptyDragLeave"
+    >
       <slot name="empty">
         <div class="p-tree-empty-content">
           <TreePine :size="48" class="p-tree-empty-icon" />
-          <p class="p-tree-empty-text">{{ emptyMessage }}</p>
+          <p class="p-tree-empty-text">
+            {{ isDragOverContainer ? '释放以添加到空树' : emptyMessage }}
+          </p>
+          <div v-if="isDragOverContainer" class="p-tree-empty-drop-hint">
+            <div class="p-tree-empty-drop-indicator"></div>
+          </div>
         </div>
       </slot>
     </div>
@@ -218,6 +231,23 @@ const {
   resetState
 } = useTreeState(computed(() => props.value || []), props.selectionKeys, props.expandedKeys, props.selectionMode)
 
+// 新的选择管理 - 需要在 useDragDrop 之前初始化
+const {
+  selectionKeys: newSelectionKeys,
+  selectedNodes: newSelectedNodes,
+  selectedCount,
+  hasSelection: newHasSelection,
+  allSelected,
+  partiallySelected,
+  selectNode: newSelectNode,
+  toggleNodeSelection: newToggleNodeSelection,
+  clearSelection: newClearSelection,
+  selectMultipleNodes,
+  isSelected: isNodeSelectedNew,
+  isPartiallySelected: isNodePartiallySelectedNew,
+  setSelectionKeys
+} = useSelection(computed(() => props.value || []), ref(props.selectionMode), props.modelValue || props.selectionKeys)
+
 const {
   dragState,
   globalDragState,
@@ -247,27 +277,19 @@ const {
   (eventName: string, event: any) => {
     // 触发跨树拖拽事件
     emit(eventName as any, event)
+  },
+  // 传递选中状态管理
+  {
+    isSelected: isNodeSelectedNew,
+    selectNode: newSelectNode,
+    getSelectedNodes: () => newSelectedNodes.value
   }
 )
 
 console.log('🔧 Tree组件初始化:', { id: props.id, dragdropScope: props.dragdropScope })
 
-// 新的选择管理
-const {
-  selectionKeys: newSelectionKeys,
-  selectedNodes: newSelectedNodes,
-  selectedCount,
-  hasSelection: newHasSelection,
-  allSelected,
-  partiallySelected,
-  selectNode: newSelectNode,
-  toggleNodeSelection: newToggleNodeSelection,
-  clearSelection: newClearSelection,
-  selectMultipleNodes,
-  isSelected: isNodeSelectedNew,
-  isPartiallySelected: isNodePartiallySelectedNew,
-  setSelectionKeys
-} = useSelection(computed(() => props.value || []), ref(props.selectionMode), props.modelValue || props.selectionKeys)
+// 空树拖拽状态
+const isDragOverContainer = ref(false)
 
 // 键盘导航管理
 const {
@@ -612,16 +634,19 @@ const handleRootDragOver = (event: DragEvent) => {
     return
   }
   
-  // 检查是否在边缘区域（顶部或底部20px）
+  // 扩大边缘区域判定范围（从20px增加到50px）
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const y = event.clientY
-  const edgeThreshold = 20
+  const edgeThreshold = 50
   
   const isTopEdge = y - rect.top <= edgeThreshold
   const isBottomEdge = rect.bottom - y <= edgeThreshold
   
-  // 只有在边缘区域才处理根级别拖拽
-  if (isTopEdge || isBottomEdge) {
+  // 在边缘区域或者树节点较少时（少于5个节点）允许根级别拖拽
+  const nodeCount = (props.value || []).length
+  const allowRootDrop = isTopEdge || isBottomEdge || nodeCount < 5
+  
+  if (allowRootDrop) {
     event.preventDefault()
     event.stopPropagation()
     event.dataTransfer!.dropEffect = 'move'
@@ -645,16 +670,19 @@ const handleRootDrop = (event: DragEvent) => {
     return
   }
   
-  // 检查是否在边缘区域（顶部或底部20px）
+  // 扩大边缘区域判定范围（从20px增加到50px）
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const y = event.clientY
-  const edgeThreshold = 20
+  const edgeThreshold = 50
   
   const isTopEdge = y - rect.top <= edgeThreshold
   const isBottomEdge = rect.bottom - y <= edgeThreshold
   
-  // 只有在边缘区域才处理根级别拖拽
-  if (isTopEdge || isBottomEdge) {
+  // 在边缘区域或者树节点较少时（少于5个节点）允许根级别拖拽
+  const nodeCount = (props.value || []).length
+  const allowRootDrop = isTopEdge || isBottomEdge || nodeCount < 5
+  
+  if (allowRootDrop) {
     event.preventDefault()
     event.stopPropagation()
     
@@ -704,16 +732,19 @@ const handleRootDragEnter = (event: DragEvent) => {
     return
   }
   
-  // 检查是否在边缘区域（顶部或底部20px）
+  // 扩大边缘区域判定范围（从20px增加到50px）
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const y = event.clientY
-  const edgeThreshold = 20
+  const edgeThreshold = 50
   
   const isTopEdge = y - rect.top <= edgeThreshold
   const isBottomEdge = rect.bottom - y <= edgeThreshold
   
-  // 只有在边缘区域才处理根级别拖拽
-  if (isTopEdge || isBottomEdge) {
+  // 在边缘区域或者树节点较少时（少于5个节点）允许根级别拖拽
+  const nodeCount = (props.value || []).length
+  const allowRootDrop = isTopEdge || isBottomEdge || nodeCount < 5
+  
+  if (allowRootDrop) {
     event.preventDefault()
     event.stopPropagation()
     
@@ -742,6 +773,123 @@ const handleRootDragLeave = (event: DragEvent) => {
     onDragLeave(event)
   }
 }
+
+// 空树拖拽事件处理
+const handleEmptyDragOver = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  event.preventDefault()
+  event.stopPropagation()
+  event.dataTransfer!.dropEffect = 'move'
+  
+  // 设置拖拽悬停状态
+  isDragOverContainer.value = true
+  
+  // 创建一个虚拟的根节点来处理拖拽逻辑
+  const rootNode: TreeNodeType = {
+    key: '__root__',
+    label: 'Root',
+    children: props.value || []
+  }
+  
+  onDragOver(event, rootNode, props.id)
+}
+
+const handleEmptyDrop = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  event.preventDefault()
+  event.stopPropagation()
+  
+  // 获取正确的拖拽信息（优先使用全局状态，用于跨树拖拽）
+  const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
+  const targetTreeId = props.id
+  const isCrossTree = sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId
+  
+  // 创建空树拖拽事件
+  const dropEvent: TreeNodeDropEvent = {
+    originalEvent: event,
+    dragNode: currentDragNode,
+    dropNode: {
+      key: '__root__',
+      label: 'Root',
+      children: props.value || []
+    },
+    dropIndex: 0, // 添加到开头
+    dropPosition: 'root',
+    sourceTreeId,
+    targetTreeId,
+    isCrossTree,
+    accept: () => {
+      onDrop(event, {
+        key: '__root__',
+        label: 'Root',
+        children: props.value || []
+      })
+      resetDragState()
+      isDragOverContainer.value = false
+    },
+    reject: () => {
+      // 拒绝拖拽：直接清理状态，不更新数据
+      resetDragState()
+      isDragOverContainer.value = false
+    }
+  }
+  
+  emit('node-drop', dropEvent)
+  
+  // 自动更新模式：自动接受拖拽操作
+  if ((props.autoUpdate && !isCrossTree) || (props.crossTreeAutoUpdate && isCrossTree)) {
+    dropEvent.accept()
+  }
+}
+
+const handleEmptyDragEnter = (event: DragEvent) => {
+  // 检查是否有拖拽节点（本地或全局）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  if (!isDragging.value || !currentDragNode) {
+    return
+  }
+  
+  event.preventDefault()
+  event.stopPropagation()
+  
+  isDragOverContainer.value = true
+  
+  const rootNode: TreeNodeType = {
+    key: '__root__',
+    label: 'Root',
+    children: props.value || []
+  }
+  
+  onDragEnter(event, rootNode)
+}
+
+const handleEmptyDragLeave = (event: DragEvent) => {
+  if (!isDragging.value) {
+    return
+  }
+  
+  // 检查是否真的离开了空树容器
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    isDragOverContainer.value = false
+    onDragLeave(event)
+  }
+}
+
+
 
 // 键盘事件处理
 const handleTreeKeyDown = (event: KeyboardEvent) => {
@@ -967,65 +1115,36 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.p-tree {
-  @apply relative;
-}
+/* 移除所有Tailwind类，使用tree.css中的全局样式 */
+/* 这些样式现在由tree.css和主题系统统一管理 */
 
-.p-tree-filter-container {
-  @apply mb-4;
-}
-
-.p-tree-filter {
-  @apply relative;
-}
-
-.p-tree-filter-input {
-  @apply w-full px-3 py-2 pr-10 border border-gray-300 rounded-md;
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-  @apply placeholder-gray-400;
-}
-
-.p-tree-filter-icon {
-  @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400;
-}
-
-.p-tree-loading {
-  @apply flex flex-col items-center justify-center py-8 text-gray-500;
-}
-
-.p-tree-loading-text {
-  @apply mt-2 text-sm;
-}
-
-.p-tree-empty {
-  @apply flex items-center justify-center py-8;
-}
-
-.p-tree-empty-content {
-  @apply flex flex-col items-center text-gray-500;
-}
-
-.p-tree-empty-icon {
-  @apply mb-4 text-gray-300;
-}
-
-.p-tree-empty-text {
-  @apply text-sm text-center;
-}
-
-.p-tree-container {
-  @apply list-none m-0 p-0;
-}
-
-.p-tree-root {
-  @apply overflow-auto;
-}
-
+/* 只保留组件特定的布局样式 */
 .p-tree-flex-scrollable {
-  @apply flex flex-col h-full;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .p-tree-flex-scrollable .p-tree-container {
-  @apply flex-1 overflow-auto;
+  flex: 1;
+  overflow: auto;
+}
+
+/* 空状态拖拽动画 - 使用CSS变量 */
+.p-tree-empty-drop-indicator {
+  width: 4rem;
+  height: 4rem;
+  border: 4px dashed var(--p-tree-drop-line-color);
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 </style>

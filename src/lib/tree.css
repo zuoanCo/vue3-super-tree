@@ -9,22 +9,36 @@
   --p-tree-checkbox-size: 1rem;
   --p-tree-icon-size: 1rem;
   
-  /* 颜色变量 */
+  /* 基础颜色 */
   --p-tree-background: #ffffff;
-  --p-tree-text-color: #495057;
-  --p-tree-border-color: #dee2e6;
-  --p-tree-hover-background: #f8f9fa;
-  --p-tree-selected-background: #e3f2fd;
-  --p-tree-selected-text-color: #1976d2;
-  --p-tree-focus-background: #1e40af;
-  --p-tree-focus-color: white;
+  --p-tree-text-color: #374151;
+  --p-tree-border-color: #e5e7eb;
   
-  /* 拖拽颜色 */
-  --p-tree-drag-background: rgba(25, 118, 210, 0.1);
-  --p-tree-drop-indicator: #1976d2;
+  /* 交互状态颜色 - 简化并统一 */
+  --p-tree-hover-background: #f3f4f6;
   
-  /* 动画 */
-  --p-tree-transition: all 0.2s ease-in-out;
+  /* 选中状态 - 使用更明显的蓝色系 */
+  --p-tree-selected-background: #dbeafe;
+  --p-tree-selected-border: #3b82f6;
+  --p-tree-selected-text-color: #1e40af;
+  
+  /* 焦点状态 - 独立的轮廓样式 */
+  --p-tree-focus-outline: #3b82f6;
+  --p-tree-focus-outline-width: 2px;
+  
+  /* 拖拽指示器 - 简化颜色方案 */
+  --p-tree-drop-line-color: #3b82f6;
+  --p-tree-drop-line-width: 3px;
+  --p-tree-drop-inside-background: rgba(59, 130, 246, 0.1);
+  --p-tree-drop-inside-border: #3b82f6;
+  
+  /* 跨树拖拽 - 使用不同颜色区分 */
+  --p-tree-cross-drop-line-color: #10b981;
+  --p-tree-cross-drop-inside-background: rgba(16, 185, 129, 0.1);
+  --p-tree-cross-drop-inside-border: #10b981;
+  
+  /* 动画 - 减少动画效果 */
+  --p-tree-transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 /* 主容器 */
@@ -85,7 +99,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: #6c757d;
+  color: var(--p-tree-loading-text-color);
 }
 
 .p-tree-loading-text {
@@ -105,12 +119,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #6c757d;
+  color: var(--p-tree-empty-text-color);
 }
 
 .p-tree-empty-icon {
   margin-bottom: 1rem;
-  color: #dee2e6;
+  color: var(--p-tree-secondary-text-color);
 }
 
 .p-tree-empty-text {
@@ -152,6 +166,7 @@
 
 .p-tree-node-content:hover {
   background: var(--p-tree-hover-background);
+  transition: background-color 0.15s ease;
 }
 
 .p-tree-node-content:focus {
@@ -159,14 +174,18 @@
   box-shadow: none !important;
 }
 
-/* 只有叶子节点（文件）才能显示选中样式，文件夹不显示选中样式 */
-.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content {
+/* 选中状态样式 - 优化选择器性能 */
+.p-tree-node-selected .p-tree-node-content {
   background: var(--p-tree-selected-background);
   color: var(--p-tree-selected-text-color);
+  border: 1px solid var(--p-tree-selected-border);
+  border-radius: 0.375rem;
+  transition: var(--p-tree-transition);
 }
 
-.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:hover {
+.p-tree-node-selected .p-tree-node-content:hover {
   background: var(--p-tree-selected-background);
+  border-color: var(--p-tree-selected-border);
 }
 
 /* 缩进 */
@@ -189,12 +208,12 @@
   border-radius: 0.25rem;
   cursor: pointer;
   transition: var(--p-tree-transition);
-  color: #6c757d;
+  color: var(--p-tree-toggler-color);
 }
 
 .p-tree-node-toggler:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--p-tree-text-color);
+  background: var(--p-tree-hover-background);
+  color: var(--p-tree-toggler-hover-color);
 }
 
 .p-tree-node-toggler:focus {
@@ -239,26 +258,26 @@
   justify-content: center;
   width: var(--p-tree-checkbox-size);
   height: var(--p-tree-checkbox-size);
-  border: 1px solid #ced4da;
+  border: 1px solid var(--p-tree-checkbox-border);
   border-radius: 0.25rem;
-  background: #ffffff;
+  background: var(--p-tree-checkbox-background);
   transition: var(--p-tree-transition);
 }
 
 .p-tree-node-checkbox:hover .p-tree-node-checkbox-box {
-  border-color: #1976d2;
+  border-color: var(--p-tree-checkbox-checked-border);
 }
 
 .p-tree-node-checkbox-checked .p-tree-node-checkbox-box {
-  background: #1976d2;
-  border-color: #1976d2;
-  color: #ffffff;
+  background: var(--p-tree-checkbox-checked-background);
+  border-color: var(--p-tree-checkbox-checked-border);
+  color: var(--p-tree-checkbox-checked-color);
 }
 
 .p-tree-node-checkbox-partial .p-tree-node-checkbox-box {
-  background: #e3f2fd;
-  border-color: #1976d2;
-  color: #1976d2;
+  background: var(--p-tree-checkbox-indeterminate-background);
+  border-color: var(--p-tree-checkbox-indeterminate-border);
+  color: var(--p-tree-checkbox-indeterminate-color);
 }
 
 /* 节点图标 */
@@ -269,7 +288,7 @@
   width: var(--p-tree-icon-size);
   height: var(--p-tree-icon-size);
   margin-right: 0.5rem;
-  color: #6c757d;
+  color: var(--p-tree-secondary-text-color);
 }
 
 .p-tree-node-loading {
@@ -279,7 +298,7 @@
   width: var(--p-tree-icon-size);
   height: var(--p-tree-icon-size);
   margin-right: 0.5rem;
-  color: #1976d2;
+  color: var(--p-tree-selected-background);
 }
 
 /* 节点标签 */
@@ -305,12 +324,14 @@
 
 /* 展开/折叠动画 */
 .p-tree-node-children {
-  transition: all 0.3s ease-in-out;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .p-tree-node-collapsed .p-tree-node-children {
-  max-height: 0;
+  transform: scaleY(0);
   opacity: 0;
+  transform-origin: top;
+  pointer-events: none;
 }
 
 .p-tree-node-expanded .p-tree-node-children {
@@ -318,10 +339,10 @@
   opacity: 1;
 }
 
-/* 拖拽样式 */
+/* 拖拽样式 - 优化版本 */
 .p-tree-node-dragging {
   opacity: 0.5;
-  transform: scale(0.95);
+  transition: opacity 0.15s ease;
 }
 
 .p-tree-node-draggable {
@@ -332,71 +353,84 @@
   cursor: grabbing;
 }
 
+/* 拖拽指示器 - 简化设计，统一三种位置指示 */
 .p-tree-drop-indicator {
   position: relative;
 }
 
-.p-tree-drop-indicator::before {
+/* 上方和下方拖拽指示线 - 使用更粗更明显的线条 */
+.p-tree-drop-above::before,
+.p-tree-drop-below::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  height: 2px;
-  background: var(--p-tree-drop-indicator);
-  border-radius: 1px;
-  z-index: 10;
+  height: var(--p-tree-drop-line-width);
+  background: var(--p-tree-drop-line-color);
+  border-radius: 2px;
+  z-index: 1000;
 }
 
 .p-tree-drop-above::before {
-  top: -1px;
+  top: -2px;
 }
 
 .p-tree-drop-below::before {
-  bottom: -1px;
+  bottom: -2px;
 }
 
+/* 内部拖拽指示 - 只使用背景色，避免与节点边框重复 */
 .p-tree-drop-inside {
-  background: var(--p-tree-drag-background);
-  border: 1px dashed var(--p-tree-drop-indicator);
-  border-radius: 0.25rem;
+  background: var(--p-tree-drop-inside-background);
+  border-radius: 0.375rem;
 }
 
-/* 跨树拖拽样式 */
-.p-tree-cross-tree-drop {
-  background: rgba(34, 197, 94, 0.1) !important;
-  border: 2px dashed #22c55e !important;
-  border-radius: 0.375rem !important;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+/* 跨树拖拽样式 - 简化设计，使用绿色区分 */
+.p-tree-cross-tree-drop.p-tree-drop-above::before,
+.p-tree-cross-tree-drop.p-tree-drop-below::before {
+  background: var(--p-tree-cross-drop-line-color);
 }
 
-.p-tree-cross-tree-drop::before {
-  background: #22c55e !important;
-  height: 3px !important;
+/* .p-tree-cross-tree-drop.p-tree-drop-inside {
+  background: var(--p-tree-cross-drop-inside-background);
+  border-color: var(--p-tree-cross-drop-inside-border);
+} */
+
+/* 拖拽计数器样式 */
+.p-tree-drag-counter {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--p-tree-selected-background);
+  color: var(--p-tree-selected-text-color);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 1000;
+  pointer-events: none;
 }
 
-/* 焦点样式 - 只使用纯 CSS :focus 伪类 */
-/* 只有叶子节点（文件）才能有焦点样式，文件夹节点不应该有焦点样式 */
-.p-tree-node-leaf .p-tree-node-content:focus {
-  background: var(--p-tree-focus-background, #1e40af) !important;
-  color: var(--p-tree-focus-color, white) !important;
-  outline: none !important;
-  box-shadow: none !important;
+/* 拖拽计数器容器 */
+.p-tree-node-with-counter {
+  position: relative;
 }
 
-/* 确保文件夹节点不会有焦点样式 */
-.p-tree-node:not(.p-tree-node-leaf) .p-tree-node-content:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  color: inherit !important;
+/* 焦点样式 - 优化选择器，减少嵌套 */
+.p-tree-node-content:focus {
+  outline: var(--p-tree-focus-outline-width) solid var(--p-tree-focus-outline);
+  outline-offset: 1px;
+  border-radius: 0.375rem;
 }
 
-/* 选中且焦点状态的 :focus 样式 - 焦点优先级更高 */
-.p-tree-node-leaf.p-tree-node-selected .p-tree-node-content:focus {
-  background: var(--p-tree-focus-background, #1e40af) !important;
-  color: var(--p-tree-focus-color, white) !important;
-  outline: none !important;
-  box-shadow: none !important;
+/* 选中且焦点状态 - 保持选中样式，添加焦点轮廓 */
+.p-tree-node-selected .p-tree-node-content:focus {
+  outline: var(--p-tree-focus-outline-width) solid var(--p-tree-focus-outline);
+  outline-offset: 1px;
 }
 
 /* 键盘导航样式 */
@@ -434,36 +468,22 @@
   }
 }
 
-/* 深色主题支持 */
+/* 深色主题支持 - 由主题系统管理 */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --p-tree-background: #1e1e1e;
-    --p-tree-text-color: #e0e0e0;
-    --p-tree-border-color: #404040;
-    --p-tree-hover-background: #2a2a2a;
-    --p-tree-selected-background: #1a365d;
-    --p-tree-selected-text-color: #90cdf4;
-  }
-  
   .p-tree-filter-input {
-    background: #2a2a2a;
-    color: #e0e0e0;
+    background: var(--p-tree-filter-input-background);
+    color: var(--p-tree-text-color);
   }
   
   .p-tree-node-checkbox-box {
-    background: #2a2a2a;
-    border-color: #404040;
+    background: var(--p-tree-checkbox-background);
+    border-color: var(--p-tree-checkbox-border);
   }
 }
 
-/* 高对比度主题 */
+/* 高对比度主题 - 由主题系统管理 */
 @media (prefers-contrast: high) {
-  :root {
-    --p-tree-border-color: #000000;
-    --p-tree-text-color: #000000;
-    --p-tree-selected-background: #0000ff;
-    --p-tree-selected-text-color: #ffffff;
-  }
+  /* 高对比度样式由主题系统控制 */
 }
 
 /* 减少动画 */
@@ -506,21 +526,21 @@
 }
 
 .p-tree-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--p-tree-filter-input-background);
   border-radius: 4px;
 }
 
 .p-tree-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--p-tree-border-color);
   border-radius: 4px;
 }
 
 .p-tree-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--p-tree-secondary-text-color);
 }
 
 /* Firefox 滚动条 */
 .p-tree-container {
   scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
+  scrollbar-color: var(--p-tree-border-color) var(--p-tree-filter-input-background);
 }
