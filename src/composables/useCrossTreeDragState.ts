@@ -1,33 +1,10 @@
 import { ref, computed, reactive } from 'vue'
-import type { TreeNode, PendingOperation } from '../lib/types'
+import type { TreeNode, PendingOperation, UseCrossTreeDragStateReturn, CrossTreeDragState } from '../lib/types'
 
 /**
- * 跨树拖拽状态管理
- * 专门管理跨树拖拽的全局状态和待确认操作
+ * 跨树拖拽状态管理 Composable
+ * 提供全局的跨树拖拽状态管理功能
  */
-
-// 全局跨树拖拽状态
-export interface CrossTreeDragState {
-  // 当前拖拽信息
-  dragNode: TreeNode | null
-  sourceTreeId: string | null
-  
-  // 目标信息
-  targetTreeId: string | null
-  dropNode: TreeNode | null
-  dropPosition: string | null
-  
-  // 状态标识
-  isDragging: boolean
-  isActive: boolean // 是否有活跃的跨树拖拽
-  
-  // 拖拽模式
-  autoUpdate: boolean // 是否自动更新模式
-  
-  // 时间戳
-  startTime: number
-  lastUpdateTime: number
-}
 
 // 全局状态
 const globalCrossTreeState = ref<CrossTreeDragState>({
@@ -58,7 +35,7 @@ const crossTreeStats = reactive({
 /**
  * 跨树拖拽状态管理 Composable
  */
-export function useCrossTreeDragState() {
+export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
   // 计算属性
   const isActive = computed(() => globalCrossTreeState.value.isActive)
   const isDragging = computed(() => globalCrossTreeState.value.isDragging)
@@ -273,6 +250,6 @@ export function useCrossTreeDragState() {
 }
 
 // 导出全局状态访问器（用于调试和监控）
-export const getCrossTreeDragState = () => globalCrossTreeState.value
-export const getPendingOperations = () => globalPendingOperations.value
+export const getCrossTreeDragState = (): CrossTreeDragState => globalCrossTreeState.value
+export const getPendingOperations = (): PendingOperation[] => globalPendingOperations.value
 export const getCrossTreeStats = () => crossTreeStats

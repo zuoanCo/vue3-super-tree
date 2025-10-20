@@ -39,7 +39,7 @@
         :class="togglerClasses"
         @click.stop="handleToggle"
         type="button"
-        :aria-label="isExpanded ? 'Collapse' : 'Expand'"
+        :aria-label="isExpanded ? mergedConfig.i18n.collapse : mergedConfig.i18n.expand"
         tabindex="-1"
       >
         <svg 
@@ -147,8 +147,10 @@ import type {
   TreeNodeUnselectEvent,
   TreeNodeExpandEvent,
   TreeNodeCollapseEvent,
-  TreeNodeDropEvent
+  TreeNodeDropEvent,
+  TreeConfig
 } from '../lib/types'
+import { DEFAULT_TREE_CONFIG } from '../lib/types'
 
 // Props
 interface Props {
@@ -166,6 +168,7 @@ interface Props {
   focusBackgroundColor?: string
   focusTextColor?: string
   treeId?: string
+  config?: TreeConfig
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -197,6 +200,12 @@ interface Emits {
 }
 
 const emit = defineEmits<Emits>()
+
+// 配置合并
+const mergedConfig = computed(() => ({
+  ...DEFAULT_TREE_CONFIG,
+  ...props.config
+}))
 
 // 添加ref来引用DOM元素
 const contentRef = ref<HTMLElement | null>(null)
@@ -311,21 +320,27 @@ const contentStyles = computed(() => {
   }
   
   // 设置CSS变量，用于CSS文件中的样式
-  if (props.focusBackgroundColor) {
-    styles['--p-tree-focus-background'] = props.focusBackgroundColor
+  const focusBackgroundColor = props.focusBackgroundColor || mergedConfig.value.style.focusBackgroundColor
+  const focusTextColor = props.focusTextColor || mergedConfig.value.style.focusTextColor
+  
+  if (focusBackgroundColor) {
+    styles['--p-tree-focus-background'] = focusBackgroundColor
   }
-  if (props.focusTextColor) {
-    styles['--p-tree-focus-color'] = props.focusTextColor
+  if (focusTextColor) {
+    styles['--p-tree-focus-color'] = focusTextColor
   }
   
   // 只有叶子节点才应用选中样式
   if (!hasChildren.value && props.isSelected) {
     // 选中样式
-    if (props.selectedBackgroundColor) {
-      styles.backgroundColor = props.selectedBackgroundColor
+    const selectedBackgroundColor = props.selectedBackgroundColor || mergedConfig.value.style.selectedBackgroundColor
+    const selectedTextColor = props.selectedTextColor || mergedConfig.value.style.selectedTextColor
+    
+    if (selectedBackgroundColor) {
+      styles.backgroundColor = selectedBackgroundColor
     }
-    if (props.selectedTextColor) {
-      styles.color = props.selectedTextColor
+    if (selectedTextColor) {
+      styles.color = selectedTextColor
     }
   }
   

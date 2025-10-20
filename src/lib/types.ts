@@ -496,6 +496,8 @@ export interface TreeProps {
   class?: string;
   /** 组件样式 */
   style?: Record<string, any>;
+  /** 树组件配置 */
+  config?: Partial<TreeConfig>;
 }
 
 // 组件事件接口
@@ -751,3 +753,337 @@ export interface CrossTreeDataProvider {
    */
   updateTreeData: (treeId: string, data: TreeNode[]) => void
 }
+
+/**
+ * 跨树拖拽状态接口
+ */
+export interface CrossTreeDragState {
+  // 当前拖拽信息
+  dragNode: TreeNode | null
+  sourceTreeId: string | null
+  
+  // 目标信息
+  targetTreeId: string | null
+  dropNode: TreeNode | null
+  dropPosition: string | null
+  
+  // 状态标识
+  isDragging: boolean
+  isActive: boolean // 是否有活跃的跨树拖拽
+  
+  // 拖拽模式
+  autoUpdate: boolean // 是否自动更新模式
+  
+  // 时间戳
+  startTime: number
+  lastUpdateTime: number
+}
+
+/**
+ * useCrossTreeDragState 函数的返回类型
+ */
+export interface UseCrossTreeDragStateReturn {
+  // 状态
+  globalState: Ref<CrossTreeDragState>;
+  isActive: ComputedRef<boolean>;
+  isDragging: ComputedRef<boolean>;
+  currentDragNode: ComputedRef<TreeNode | null>;
+  sourceTreeId: ComputedRef<string | null>;
+  targetTreeId: ComputedRef<string | null>;
+  pendingOperations: ComputedRef<PendingOperation[]>;
+  pendingCount: ComputedRef<number>;
+  stats: {
+    totalOperations: number;
+    successfulOperations: number;
+    failedOperations: number;
+    pendingCount: number;
+    averageProcessingTime: number;
+  };
+
+  // 方法
+  startCrossTreeDrag: (
+    dragNode: TreeNode,
+    sourceTreeId: string,
+    autoUpdate?: boolean
+  ) => void;
+  updateTarget: (
+    targetTreeId: string,
+    dropNode?: TreeNode,
+    dropPosition?: string
+  ) => void;
+  endCrossTreeDrag: (success?: boolean) => void;
+  addPendingOperation: (operation: PendingOperation) => void;
+  removePendingOperation: (operationId: string) => void;
+  clearAllPendingOperations: () => void;
+  getPendingOperationsForTree: (treeId: string) => PendingOperation[];
+  hasCrossTreeDragToTree: (treeId: string) => boolean;
+  hasCrossTreeDragFromTree: (treeId: string) => boolean;
+  getCurrentDragInfo: () => {
+    dragNode: TreeNode | null;
+    sourceTreeId: string | null;
+    targetTreeId: string | null;
+    dropNode: TreeNode | null;
+    dropPosition: string | null;
+    autoUpdate: boolean;
+    duration: number;
+  } | null;
+  resetAllState: () => void;
+}
+
+/**
+ * 国际化文本配置接口
+ */
+export interface TreeI18nConfig {
+  // 基础文本
+  loading?: string;
+  search?: string;
+  noDataFound?: string;
+  expand?: string;
+  collapse?: string;
+  
+  // 拖拽相关文本
+  dragMessages?: {
+    moveToAbove?: string; // "将 {dragLabel} 移动到 {dropLabel} 之前"
+    moveToBelow?: string; // "将 {dragLabel} 移动到 {dropLabel} 之后"
+    moveToInside?: string; // "将 {dragLabel} 移动到 {dropLabel} 内部"
+    moveGeneric?: string; // "移动 {dragLabel}"
+    crossTreeMove?: string; // "将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId}"
+    crossTreeMoveToAbove?: string; // "将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之前"
+    crossTreeMoveToBelow?: string; // "将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之后"
+    crossTreeMoveToInside?: string; // "将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 内部"
+    releaseToAddToEmptyTree?: string; // "释放以添加到空树"
+  };
+  
+  // 待确认操作相关文本
+  pendingOperations?: {
+    title?: string; // "待确认操作"
+    clearAll?: string; // "清除所有待确认操作"
+    accept?: string; // "接受此操作"
+    reject?: string; // "拒绝此操作"
+    crossTreeOperation?: string; // "跨树操作"
+  };
+  
+  // 可访问性文本
+  accessibility?: {
+    treeLabel?: string; // "Tree"
+    nodeSelected?: string; // "节点已选中"
+    nodeUnselected?: string; // "节点已取消选中"
+    nodeExpanded?: string; // "节点已展开"
+    nodeCollapsed?: string; // "节点已折叠"
+  };
+}
+
+/**
+ * 树组件样式配置接口
+ */
+export interface TreeStyleConfig {
+  // 颜色配置
+  colors?: {
+    selectedBackground?: string;
+    selectedText?: string;
+    focusBackground?: string;
+    focusText?: string;
+    hoverBackground?: string;
+    hoverText?: string;
+    borderColor?: string;
+    iconColor?: string;
+    loadingColor?: string;
+  };
+  
+  // 尺寸配置
+  dimensions?: {
+    nodeHeight?: number;
+    indent?: number;
+    iconSize?: number;
+    checkboxSize?: number;
+    togglerSize?: number;
+    borderRadius?: number;
+    borderWidth?: number;
+  };
+  
+  // 间距配置
+  spacing?: {
+    nodePadding?: string;
+    nodeMargin?: string;
+    iconMargin?: string;
+    labelMargin?: string;
+    childrenMargin?: string;
+  };
+  
+  // 字体配置
+  typography?: {
+    fontSize?: string;
+    fontWeight?: string;
+    fontFamily?: string;
+    lineHeight?: string;
+  };
+  
+  // 动画配置
+  animations?: {
+    expandDuration?: string;
+    collapseDuration?: string;
+    hoverTransition?: string;
+    focusTransition?: string;
+  };
+}
+
+/**
+ * 树组件配置接口
+ */
+export interface TreeConfig {
+  // 国际化配置
+  i18n?: TreeI18nConfig;
+  
+  // 样式配置
+  style?: TreeStyleConfig;
+  
+  // 树ID前缀配置（用于替代硬编码的树ID前缀）
+  treeIdConfig?: {
+    // 自动检测树ID前缀的函数
+    detectTreeId?: (nodeKey: string | number) => string | null;
+    // 预定义的树ID映射
+    treeIdMap?: Record<string, string>;
+    // 默认树ID
+    defaultTreeId?: string;
+  };
+  
+  // 拖拽配置
+  dragDrop?: {
+    // 是否启用跨树拖拽
+    enableCrossTree?: boolean;
+    // 拖拽范围
+    scope?: string;
+    // 拖拽延迟（毫秒）
+    dragDelay?: number;
+    // 拖拽阈值（像素）
+    dragThreshold?: number;
+  };
+  
+  // 性能配置
+  performance?: {
+    // 虚拟滚动阈值
+    virtualScrollThreshold?: number;
+    // 延迟加载阈值
+    lazyLoadThreshold?: number;
+    // 防抖延迟（毫秒）
+    debounceDelay?: number;
+  };
+}
+
+/**
+ * 默认国际化配置
+ */
+export const DEFAULT_I18N_CONFIG: Required<TreeI18nConfig> = {
+  loading: 'Loading...',
+  search: 'Search...',
+  noDataFound: 'No data found',
+  expand: 'Expand',
+  collapse: 'Collapse',
+  dragMessages: {
+    moveToAbove: '将 {dragLabel} 移动到 {dropLabel} 之前',
+    moveToBelow: '将 {dragLabel} 移动到 {dropLabel} 之后',
+    moveToInside: '将 {dragLabel} 移动到 {dropLabel} 内部',
+    moveGeneric: '移动 {dragLabel}',
+    crossTreeMove: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId}',
+    crossTreeMoveToAbove: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之前',
+    crossTreeMoveToBelow: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之后',
+    crossTreeMoveToInside: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 内部',
+    releaseToAddToEmptyTree: '释放以添加到空树',
+  },
+  pendingOperations: {
+    title: '待确认操作',
+    clearAll: '清除所有待确认操作',
+    accept: '接受此操作',
+    reject: '拒绝此操作',
+    crossTreeOperation: '跨树操作',
+  },
+  accessibility: {
+    treeLabel: 'Tree',
+    nodeSelected: '节点已选中',
+    nodeUnselected: '节点已取消选中',
+    nodeExpanded: '节点已展开',
+    nodeCollapsed: '节点已折叠',
+  },
+};
+
+/**
+ * 默认样式配置
+ */
+export const DEFAULT_STYLE_CONFIG: Required<TreeStyleConfig> = {
+  colors: {
+    selectedBackground: '#e3f2fd',
+    selectedText: '#1565c0',
+    focusBackground: '#1e40af',
+    focusText: 'white',
+    hoverBackground: '#f5f5f5',
+    hoverText: 'inherit',
+    borderColor: '#e0e0e0',
+    iconColor: '#666666',
+    loadingColor: '#1976d2',
+  },
+  dimensions: {
+    nodeHeight: 32,
+    indent: 16,
+    iconSize: 16,
+    checkboxSize: 12,
+    togglerSize: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  spacing: {
+    nodePadding: '4px 8px',
+    nodeMargin: '0',
+    iconMargin: '0 4px 0 0',
+    labelMargin: '0 0 0 4px',
+    childrenMargin: '0 0 0 16px',
+  },
+  typography: {
+    fontSize: '14px',
+    fontWeight: 'normal',
+    fontFamily: 'inherit',
+    lineHeight: '1.5',
+  },
+  animations: {
+    expandDuration: '200ms',
+    collapseDuration: '200ms',
+    hoverTransition: 'all 150ms ease',
+    focusTransition: 'all 150ms ease',
+  },
+};
+
+/**
+ * 默认树配置
+ */
+export const DEFAULT_TREE_CONFIG: Required<TreeConfig> = {
+  i18n: DEFAULT_I18N_CONFIG,
+  style: DEFAULT_STYLE_CONFIG,
+  treeIdConfig: {
+    detectTreeId: (nodeKey: string | number) => {
+      const keyStr = nodeKey.toString();
+      // 默认检测逻辑：查找以 'tree' 开头后跟数字和连字符的模式
+      const match = keyStr.match(/^(tree\d+)-/);
+      return match ? match[1] : null;
+    },
+    treeIdMap: {},
+    defaultTreeId: 'tree',
+  },
+  dragDrop: {
+    enableCrossTree: true,
+    scope: 'default',
+    dragDelay: 0,
+    dragThreshold: 5,
+  },
+  performance: {
+    virtualScrollThreshold: 100,
+    lazyLoadThreshold: 50,
+    debounceDelay: 300,
+  },
+};
+
+/**
+ * 文本模板替换工具函数类型
+ */
+export type TextTemplateReplacer = (
+  template: string,
+  variables: Record<string, string | number>
+) => string;

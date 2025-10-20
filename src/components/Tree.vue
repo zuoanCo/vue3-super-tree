@@ -6,7 +6,7 @@
         <input
           v-model="filterValue"
           type="text"
-          :placeholder="filterPlaceholder"
+          :placeholder="filterPlaceholder || mergedConfig.i18n.filterPlaceholder"
           class="p-tree-filter-input"
           @input="handleFilterInput"
         />
@@ -17,7 +17,7 @@
     <!-- 加载状态 -->
     <div v-if="loading" class="p-tree-loading">
       <Loader2 :size="24" class="animate-spin" />
-      <span class="p-tree-loading-text">{{ loadingText }}</span>
+      <span class="p-tree-loading-text">{{ loadingText || mergedConfig.i18n.loadingText }}</span>
     </div>
 
     <!-- 空状态 -->
@@ -34,7 +34,7 @@
         <div class="p-tree-empty-content">
           <TreePine :size="48" class="p-tree-empty-icon" />
           <p class="p-tree-empty-text">
-            {{ isDragOverContainer ? '释放以添加到空树' : emptyMessage }}
+            {{ isDragOverContainer ? mergedConfig.i18n.dropToEmptyTree : (emptyMessage || mergedConfig.i18n.emptyMessage) }}
           </p>
           <div v-if="isDragOverContainer" class="p-tree-empty-drop-hint">
             <div class="p-tree-empty-drop-indicator"></div>
@@ -73,6 +73,7 @@
         :selected-text-color="selectedTextColor"
         :focus-background-color="focusBackgroundColor"
         :focus-text-color="focusTextColor"
+        :config="mergedConfig"
         @node-click="handleNodeClick"
         @node-double-click="handleNodeDoubleClick"
         @node-context-menu="handleNodeContextMenu"
@@ -92,13 +93,13 @@
     <!-- 待确认操作列表 -->
     <div v-if="pendingOperations.length > 0" class="p-tree-pending-operations">
       <div class="p-tree-pending-header">
-        <h4>待确认操作 ({{ pendingOperations.length }})</h4>
+        <h4>{{ mergedConfig.i18n.pendingOperationsTitle }} ({{ pendingOperations.length }})</h4>
         <button 
           @click="clearAllPendingOperations"
           class="p-tree-pending-clear-all"
           title="清除所有待确认操作"
         >
-          清除全部
+          {{ mergedConfig.i18n.clearAllOperations }}
         </button>
       </div>
       <div class="p-tree-pending-list">
@@ -111,23 +112,23 @@
             <div class="p-tree-pending-description">{{ operation.description }}</div>
             <div class="p-tree-pending-details">
               <span class="p-tree-pending-time">{{ formatTime(operation.timestamp) }}</span>
-              <span v-if="operation.isCrossTree" class="p-tree-pending-cross-tree">跨树操作</span>
+              <span v-if="operation.isCrossTree" class="p-tree-pending-cross-tree">{{ mergedConfig.i18n.crossTreeOperation }}</span>
             </div>
           </div>
           <div class="p-tree-pending-actions">
             <button 
               @click="acceptOperation(operation)"
               class="p-tree-pending-accept"
-              title="接受此操作"
+              :title="mergedConfig.i18n.acceptOperation"
             >
-              接受
+              {{ mergedConfig.i18n.accept }}
             </button>
             <button 
               @click="rejectOperation(operation)"
               class="p-tree-pending-reject"
-              title="拒绝此操作"
+              :title="mergedConfig.i18n.rejectOperation"
             >
-              拒绝
+              {{ mergedConfig.i18n.reject }}
             </button>
           </div>
         </div>
@@ -145,7 +146,7 @@ import { useDragDrop } from '../composables/useDragDrop'
 import { useSelection } from '../composables/useSelection'
 import { useFocus } from '../composables/useFocus'
 import { useFilter } from '../composables/useFilter'
-import { moveTreeNode, moveCrossTreeNode, getNodeDetailedInfo, calculateDropInfo } from '../lib/utils'
+import { moveTreeNode, moveCrossTreeNode, getNodeDetailedInfo, calculateDropInfo, mergeTreeConfig, replaceTextTemplate } from '../lib/utils'
 import type {
   TreeNode as TreeNodeType,
   TreeProps,
@@ -197,7 +198,8 @@ const props = withDefaults(defineProps<TreeProps>(), {
   selectedBackgroundColor: '#e3f2fd',
   selectedTextColor: '#1565c0',
   focusBackgroundColor: '#1e40af',
-  focusTextColor: 'white'
+  focusTextColor: 'white',
+  config: () => ({})
 })
 
 // Emits
@@ -255,6 +257,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: any];
   'update:value': [value: TreeNodeType[]];
 }>()
+
+// 配置合并
+const mergedConfig = computed(() => mergeTreeConfig(props.config))
 
 // 响应式数据
 const filterValue = ref('')
@@ -1239,29 +1244,59 @@ const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEv
   const dropLabel = event.dropNode.label || event.dropNode.key
   
   if (event.isCrossTree) {
-    const sourceTreeId = event.sourceTreeId || '未知源树'
-    const targetTreeId = event.targetTreeId || '未知目标树'
+    const sourceTreeId = event.sourceTreeId || mergedConfig.value.i18n.unknownSourceTree
+    const targetTreeId = event.targetTreeId || mergedConfig.value.i18n.unknownTargetTree
     
     switch (event.dropPosition) {
       case 'above':
-        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之前`
+        return replaceTextTemplate(mergedConfig.value.i18n.crossTreeMoveBefore, {
+          dragLabel,
+          sourceTreeId,
+          targetTreeId,
+          dropLabel
+        })
       case 'below':
-        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之后`
+        return replaceTextTemplate(mergedConfig.value.i18n.crossTreeMoveAfter, {
+          dragLabel,
+          sourceTreeId,
+          targetTreeId,
+          dropLabel
+        })
       case 'inside':
-        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 内部`
+        return replaceTextTemplate(mergedConfig.value.i18n.crossTreeMoveInside, {
+          dragLabel,
+          sourceTreeId,
+          targetTreeId,
+          dropLabel
+        })
       default:
-        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId}`
+        return replaceTextTemplate(mergedConfig.value.i18n.crossTreeMove, {
+          dragLabel,
+          sourceTreeId,
+          targetTreeId
+        })
     }
   } else {
     switch (event.dropPosition) {
       case 'above':
-        return `将 "${dragLabel}" 移动到 "${dropLabel}" 之前`
+        return replaceTextTemplate(mergedConfig.value.i18n.moveBefore, {
+          dragLabel,
+          dropLabel
+        })
       case 'below':
-        return `将 "${dragLabel}" 移动到 "${dropLabel}" 之后`
+        return replaceTextTemplate(mergedConfig.value.i18n.moveAfter, {
+          dragLabel,
+          dropLabel
+        })
       case 'inside':
-        return `将 "${dragLabel}" 移动到 "${dropLabel}" 内部`
+        return replaceTextTemplate(mergedConfig.value.i18n.moveInside, {
+          dragLabel,
+          dropLabel
+        })
       default:
-        return `移动 "${dragLabel}"`
+        return replaceTextTemplate(mergedConfig.value.i18n.move, {
+          dragLabel
+        })
     }
   }
 }

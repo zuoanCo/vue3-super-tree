@@ -5,9 +5,11 @@ import UserTreeExample from '@/pages/UserTreeExample.vue'
 import AutoUpdateExample from '@/pages/AutoUpdateExample.vue'
 import CrossTreeAutoUpdateTest from '@/pages/CrossTreeAutoUpdateTest.vue'
 import SimpleAutoUpdateDemo from '@/pages/SimpleAutoUpdateDemo.vue'
+import SimpleDragDemo from '@/pages/SimpleDragDemo.vue'
 import QuickTest from '@/pages/QuickTest.vue'
 import CrossTreeDragDiagnosis from '@/pages/CrossTreeDragDiagnosis.vue'
 import CrossTreeDragDemo from '@/pages/CrossTreeDragDemo.vue'
+import ConfigTest from '@/pages/ConfigTest.vue'
 
 // 定义路由配置
 const routes = [
@@ -42,6 +44,11 @@ const routes = [
     component: SimpleAutoUpdateDemo,
   },
   {
+    path: '/simple-drag-demo',
+    name: 'simple-drag-demo',
+    component: SimpleDragDemo,
+  },
+  {
     path: '/quick-test',
     name: 'quick-test',
     component: QuickTest,
@@ -55,6 +62,11 @@ const routes = [
     path: '/cross-tree-demo',
     name: 'cross-tree-demo',
     component: CrossTreeDragDemo,
+  },
+  {
+    path: '/config-test',
+    name: 'config-test',
+    component: ConfigTest,
   },
   {
     path: '/about',

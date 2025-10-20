@@ -67,6 +67,15 @@ export const laraLightTheme: TreeTheme = {
     
     // 动画
     '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 
@@ -132,6 +141,15 @@ export const laraDarkTheme: TreeTheme = {
     
     // 动画
     '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 
@@ -139,15 +157,73 @@ export const laraDarkTheme: TreeTheme = {
 export const bootstrapTheme: TreeTheme = {
   name: 'bootstrap',
   variables: {
+    // 基础颜色
     '--p-tree-background': '#ffffff',
     '--p-tree-text-color': '#212529',
     '--p-tree-border-color': '#dee2e6',
+    '--p-tree-secondary-text-color': '#6c757d',
+    
+    // 交互状态
     '--p-tree-hover-background': '#f8f9fa',
+    '--p-tree-active-background': '#e9ecef',
+    
+    // 选中状态
     '--p-tree-selected-background': '#e7f3ff',
+    '--p-tree-selected-border': '#0d6efd',
     '--p-tree-selected-text-color': '#0d6efd',
+    
+    // 焦点状态
+    '--p-tree-focus-outline': '#0d6efd',
+    '--p-tree-focus-outline-width': '2px',
     '--p-tree-focus-ring': '0 0 0 0.25rem rgba(13, 110, 253, 0.25)',
-    '--p-tree-drag-background': 'rgba(13, 110, 253, 0.1)',
-    '--p-tree-drop-indicator': '#0d6efd',
+    
+    // 拖拽指示器
+    '--p-tree-drop-line-color': '#0d6efd',
+    '--p-tree-drop-line-width': '3px',
+    '--p-tree-drop-inside-background': 'rgba(13, 110, 253, 0.1)',
+    '--p-tree-drop-inside-border': '#0d6efd',
+    
+    // 跨树拖拽
+    '--p-tree-cross-drop-line-color': '#198754',
+    '--p-tree-cross-drop-inside-background': 'rgba(25, 135, 84, 0.1)',
+    '--p-tree-cross-drop-inside-border': '#198754',
+    
+    // 过滤器
+    '--p-tree-filter-background': '#f8f9fa',
+    '--p-tree-filter-input-background': '#ffffff',
+    '--p-tree-filter-input-border': '#dee2e6',
+    '--p-tree-filter-input-focus-border': '#0d6efd',
+    '--p-tree-filter-icon-color': '#6c757d',
+    
+    // 加载和空状态
+    '--p-tree-loading-text-color': '#6c757d',
+    '--p-tree-empty-text-color': '#6c757d',
+    
+    // 复选框
+    '--p-tree-checkbox-border': '#dee2e6',
+    '--p-tree-checkbox-background': '#ffffff',
+    '--p-tree-checkbox-checked-background': '#0d6efd',
+    '--p-tree-checkbox-checked-border': '#0d6efd',
+    '--p-tree-checkbox-checked-color': '#ffffff',
+    '--p-tree-checkbox-indeterminate-background': '#e7f3ff',
+    '--p-tree-checkbox-indeterminate-border': '#0d6efd',
+    '--p-tree-checkbox-indeterminate-color': '#0d6efd',
+    
+    // 切换器
+    '--p-tree-toggler-color': '#6c757d',
+    '--p-tree-toggler-hover-color': '#0d6efd',
+    
+    // 动画
+    '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 
@@ -155,15 +231,73 @@ export const bootstrapTheme: TreeTheme = {
 export const materialTheme: TreeTheme = {
   name: 'material',
   variables: {
+    // 基础颜色
     '--p-tree-background': '#ffffff',
     '--p-tree-text-color': '#212121',
     '--p-tree-border-color': '#e0e0e0',
+    '--p-tree-secondary-text-color': '#757575',
+    
+    // 交互状态
     '--p-tree-hover-background': '#f5f5f5',
+    '--p-tree-active-background': '#eeeeee',
+    
+    // 选中状态
     '--p-tree-selected-background': '#e8f5e8',
+    '--p-tree-selected-border': '#2e7d32',
     '--p-tree-selected-text-color': '#2e7d32',
+    
+    // 焦点状态
+    '--p-tree-focus-outline': '#2e7d32',
+    '--p-tree-focus-outline-width': '2px',
     '--p-tree-focus-ring': '0 0 0 2px rgba(46, 125, 50, 0.2)',
-    '--p-tree-drag-background': 'rgba(46, 125, 50, 0.1)',
-    '--p-tree-drop-indicator': '#2e7d32',
+    
+    // 拖拽指示器
+    '--p-tree-drop-line-color': '#2e7d32',
+    '--p-tree-drop-line-width': '3px',
+    '--p-tree-drop-inside-background': 'rgba(46, 125, 50, 0.1)',
+    '--p-tree-drop-inside-border': '#2e7d32',
+    
+    // 跨树拖拽
+    '--p-tree-cross-drop-line-color': '#1976d2',
+    '--p-tree-cross-drop-inside-background': 'rgba(25, 118, 210, 0.1)',
+    '--p-tree-cross-drop-inside-border': '#1976d2',
+    
+    // 过滤器
+    '--p-tree-filter-background': '#f5f5f5',
+    '--p-tree-filter-input-background': '#ffffff',
+    '--p-tree-filter-input-border': '#e0e0e0',
+    '--p-tree-filter-input-focus-border': '#2e7d32',
+    '--p-tree-filter-icon-color': '#757575',
+    
+    // 加载和空状态
+    '--p-tree-loading-text-color': '#757575',
+    '--p-tree-empty-text-color': '#757575',
+    
+    // 复选框
+    '--p-tree-checkbox-border': '#e0e0e0',
+    '--p-tree-checkbox-background': '#ffffff',
+    '--p-tree-checkbox-checked-background': '#2e7d32',
+    '--p-tree-checkbox-checked-border': '#2e7d32',
+    '--p-tree-checkbox-checked-color': '#ffffff',
+    '--p-tree-checkbox-indeterminate-background': '#e8f5e8',
+    '--p-tree-checkbox-indeterminate-border': '#2e7d32',
+    '--p-tree-checkbox-indeterminate-color': '#2e7d32',
+    
+    // 切换器
+    '--p-tree-toggler-color': '#757575',
+    '--p-tree-toggler-hover-color': '#2e7d32',
+    
+    // 动画
+    '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 
@@ -171,15 +305,73 @@ export const materialTheme: TreeTheme = {
 export const fluentTheme: TreeTheme = {
   name: 'fluent',
   variables: {
+    // 基础颜色
     '--p-tree-background': '#ffffff',
     '--p-tree-text-color': '#323130',
     '--p-tree-border-color': '#d2d0ce',
+    '--p-tree-secondary-text-color': '#605e5c',
+    
+    // 交互状态
     '--p-tree-hover-background': '#f3f2f1',
+    '--p-tree-active-background': '#edebe9',
+    
+    // 选中状态
     '--p-tree-selected-background': '#deecf9',
+    '--p-tree-selected-border': '#106ebe',
     '--p-tree-selected-text-color': '#106ebe',
+    
+    // 焦点状态
+    '--p-tree-focus-outline': '#106ebe',
+    '--p-tree-focus-outline-width': '2px',
     '--p-tree-focus-ring': '0 0 0 2px rgba(16, 110, 190, 0.2)',
-    '--p-tree-drag-background': 'rgba(16, 110, 190, 0.1)',
-    '--p-tree-drop-indicator': '#106ebe',
+    
+    // 拖拽指示器
+    '--p-tree-drop-line-color': '#106ebe',
+    '--p-tree-drop-line-width': '3px',
+    '--p-tree-drop-inside-background': 'rgba(16, 110, 190, 0.1)',
+    '--p-tree-drop-inside-border': '#106ebe',
+    
+    // 跨树拖拽
+    '--p-tree-cross-drop-line-color': '#107c10',
+    '--p-tree-cross-drop-inside-background': 'rgba(16, 124, 16, 0.1)',
+    '--p-tree-cross-drop-inside-border': '#107c10',
+    
+    // 过滤器
+    '--p-tree-filter-background': '#f3f2f1',
+    '--p-tree-filter-input-background': '#ffffff',
+    '--p-tree-filter-input-border': '#d2d0ce',
+    '--p-tree-filter-input-focus-border': '#106ebe',
+    '--p-tree-filter-icon-color': '#605e5c',
+    
+    // 加载和空状态
+    '--p-tree-loading-text-color': '#605e5c',
+    '--p-tree-empty-text-color': '#605e5c',
+    
+    // 复选框
+    '--p-tree-checkbox-border': '#d2d0ce',
+    '--p-tree-checkbox-background': '#ffffff',
+    '--p-tree-checkbox-checked-background': '#106ebe',
+    '--p-tree-checkbox-checked-border': '#106ebe',
+    '--p-tree-checkbox-checked-color': '#ffffff',
+    '--p-tree-checkbox-indeterminate-background': '#deecf9',
+    '--p-tree-checkbox-indeterminate-border': '#106ebe',
+    '--p-tree-checkbox-indeterminate-color': '#106ebe',
+    
+    // 切换器
+    '--p-tree-toggler-color': '#605e5c',
+    '--p-tree-toggler-hover-color': '#106ebe',
+    
+    // 动画
+    '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 
@@ -245,6 +437,15 @@ export const tailwindTheme: TreeTheme = {
     
     // 动画
     '--p-tree-transition': 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+    
+    // 间距和尺寸
+    '--p-tree-node-indent': '20px',
+    '--p-tree-node-padding': '0.5rem',
+    '--p-tree-node-height': '2rem',
+    '--p-tree-node-border-radius': '0.25rem',
+    '--p-tree-toggler-size': '1rem',
+    '--p-tree-icon-size': '1rem',
+    '--p-tree-checkbox-size': '1rem',
   }
 }
 

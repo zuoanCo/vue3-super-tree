@@ -8,11 +8,84 @@ import type {
   TreeNodePredicate,
   TreeNodeMapper,
   TreeNodeVisitor,
-  TreeDropPosition
+  TreeDropPosition,
+  TreeConfig,
+  TreeI18nConfig,
+  TreeStyleConfig,
+  TextTemplateReplacer
+} from './types'
+import { 
+  DEFAULT_TREE_CONFIG,
+  DEFAULT_I18N_CONFIG,
+  DEFAULT_STYLE_CONFIG
 } from './types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * 配置合并工具函数
+ */
+export function mergeTreeConfig(userConfig?: Partial<TreeConfig>): TreeConfig {
+  if (!userConfig) return DEFAULT_TREE_CONFIG
+  
+  return {
+    ...DEFAULT_TREE_CONFIG,
+    ...userConfig,
+    i18n: {
+      ...DEFAULT_I18N_CONFIG,
+      ...userConfig.i18n
+    },
+    style: {
+      ...DEFAULT_STYLE_CONFIG,
+      ...userConfig.style
+    }
+  }
+}
+
+/**
+ * 文本模板替换函数
+ */
+export function replaceTextTemplate(
+  template: string, 
+  replacer: TextTemplateReplacer
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    return replacer[key] !== undefined ? String(replacer[key]) : match
+  })
+}
+
+/**
+ * 获取树ID前缀
+ */
+export function getTreeIdPrefix(treeId: string): string {
+  return `${treeId}-`
+}
+
+/**
+ * 从节点键中提取树ID
+ */
+export function extractTreeIdFromNodeKey(nodeKey: string | number): string | null {
+  if (typeof nodeKey !== 'string') return null
+  
+  const match = nodeKey.match(/^(.+?)-/)
+  return match ? match[1] : null
+}
+
+/**
+ * 检查节点是否属于指定树
+ */
+export function isNodeFromTree(nodeKey: string | number, treeId: string): boolean {
+  const extractedTreeId = extractTreeIdFromNodeKey(nodeKey)
+  return extractedTreeId === treeId
+}
+
+/**
+ * 生成带树ID前缀的节点键
+ */
+export function generateNodeKey(treeId: string, originalKey: string | number): string {
+  return `${treeId}-${originalKey}`
 }
 
 /**
@@ -660,13 +733,16 @@ export function addNodeToTree(
 }
 
 // 更新节点的 key 以反映新的树归属
-function updateNodeKeysForCrossTree(node: TreeNode, sourceTreePrefix: string, targetTreePrefix: string): TreeNode {
+function updateNodeKeysForCrossTree(node: TreeNode, sourceTreeId: string, targetTreeId: string): TreeNode {
   const updatedNode = { ...node }
   
-  // 更新当前节点的 key
-  if (updatedNode.key.toString().startsWith(sourceTreePrefix)) {
-    const keySuffix = updatedNode.key.toString().substring(sourceTreePrefix.length)
-    updatedNode.key = targetTreePrefix + keySuffix
+  // 使用新的工具函数检查和更新节点键
+  if (isNodeFromTree(updatedNode.key, sourceTreeId)) {
+    const keyString = updatedNode.key.toString()
+    const sourcePrefix = getTreeIdPrefix(sourceTreeId)
+    const keySuffix = keyString.substring(sourcePrefix.length)
+    updatedNode.key = generateNodeKey(targetTreeId, keySuffix)
+    
     console.log('🔄 更新节点 key:', { 
       oldKey: node.key, 
       newKey: updatedNode.key,
@@ -677,7 +753,7 @@ function updateNodeKeysForCrossTree(node: TreeNode, sourceTreePrefix: string, ta
   // 递归更新子节点的 key
   if (updatedNode.children && updatedNode.children.length > 0) {
     updatedNode.children = updatedNode.children.map(child => 
-      updateNodeKeysForCrossTree(child, sourceTreePrefix, targetTreePrefix)
+      updateNodeKeysForCrossTree(child, sourceTreeId, targetTreeId)
     )
   }
   
@@ -722,17 +798,17 @@ export function moveCrossTreeNode(
       remainingNodesCount: removeResult.nodes.length
     })
     
-    // 确定源树和目标树的前缀
-    const sourceTreePrefix = dragNodeKey.toString().startsWith('tree1-') ? 'tree1-' : 'tree2-'
-    const targetTreePrefix = dropNodeKey.toString().startsWith('tree1-') ? 'tree1-' : 'tree2-'
+    // 使用新的工具函数确定源树和目标树ID
+    const sourceTreeId = extractTreeIdFromNodeKey(dragNodeKey)
+    const targetTreeId = extractTreeIdFromNodeKey(dropNodeKey)
     
-    console.log('🏷️ 树前缀分析:', { sourceTreePrefix, targetTreePrefix })
+    console.log('🏷️ 树ID分析:', { sourceTreeId, targetTreeId })
     
     // 如果是跨树移动，更新节点的 key
     let nodeToInsert = removeResult.removedNode
-    if (sourceTreePrefix !== targetTreePrefix) {
-      console.log('🔄 跨树移动，更新节点 key:', { sourceTreePrefix, targetTreePrefix })
-      nodeToInsert = updateNodeKeysForCrossTree(removeResult.removedNode, sourceTreePrefix, targetTreePrefix)
+    if (sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId) {
+      console.log('🔄 跨树移动，更新节点 key:', { sourceTreeId, targetTreeId })
+      nodeToInsert = updateNodeKeysForCrossTree(removeResult.removedNode, sourceTreeId, targetTreeId)
       console.log('🆔 节点 key 更新:', {
         oldKey: removeResult.removedNode.key,
         newKey: nodeToInsert.key
@@ -983,7 +1059,8 @@ export function getCrossTreeSampleData(): { tree1: TreeNode[]; tree2: TreeNode[]
 export function getNodeDetailedInfo(
   nodes: TreeNode[], 
   nodeKey: string | number, 
-  treeId: string
+  treeId: string,
+  config?: Partial<TreeConfig>
 ): {
   node: TreeNode | null;
   parentNode: TreeNode | null;
@@ -1013,10 +1090,11 @@ export function getNodeDetailedInfo(
       const nodePath = [...currentPath, node.label]
       
       if (node.key === targetKey) {
+        const mergedConfig = mergeTreeConfig(config)
         return {
           node,
           parentNode: parent,
-          parentLabel: parent?.label || '根目录',
+          parentLabel: parent?.label || mergedConfig.i18n.rootLabel,
           parentKey: parent?.key || null,
           index: i,
           level: currentLevel,
