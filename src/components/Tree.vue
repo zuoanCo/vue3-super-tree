@@ -508,22 +508,41 @@ const handleNodeDragEnd = (event: { originalEvent: DragEvent; node: TreeNodeType
 }
 
 const handleNodeDrop = (event: TreeNodeDropEvent) => {
-  // 对于跨树拖拽，使用事件中的拖拽节点信息
-  const currentDragNode = event.isCrossTree ? event.dragNode : dragNode.value
-  const currentDropPosition = event.isCrossTree ? event.dropPosition : dropPosition.value
+  // 获取拖拽节点信息（优先使用全局状态，用于跨树拖拽）
+  const currentDragNode = dragNode.value || globalDragState.value.dragNode
+  const currentDropPosition = dropPosition.value || globalDragState.value.dropPosition || 'inside'
+  
+  // 判断是否为跨树拖拽
+  const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
+  const targetTreeId = props.id
+  const isCrossTree = sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId
+  
+  console.log('🎯 handleNodeDrop:', {
+    currentDragNode: currentDragNode?.label,
+    dropNode: event.dropNode.label,
+    sourceTreeId,
+    targetTreeId,
+    isCrossTree,
+    eventIsCrossTree: event.isCrossTree
+  })
   
   // 对于跨树拖拽，跳过本地的 isDroppable 检查，因为拖拽节点不在当前树中
-  if (!event.isCrossTree && (!currentDragNode || !isDroppable(event.dropNode))) {
+  if (!isCrossTree && (!currentDragNode || !isDroppable(event.dropNode))) {
+    console.log('❌ 同树拖拽验证失败')
     return
   }
   
-  if (event.isCrossTree && !currentDragNode) {
+  if (isCrossTree && !currentDragNode) {
+    console.log('❌ 跨树拖拽但没有拖拽节点')
     return
   }
   
   // 设置拖拽节点信息
   event.dragNode = currentDragNode
   event.dropPosition = currentDropPosition
+  event.sourceTreeId = sourceTreeId
+  event.targetTreeId = targetTreeId
+  event.isCrossTree = isCrossTree
   
   // 验证拖拽
   if (props.validateDrop) {

@@ -482,9 +482,28 @@ const handleDrop = (event: DragEvent) => {
     console.log('📦 从 tree.onDrop 获得事件:', dropEvent)
   }
   
-  // 如果没有返回事件对象或事件对象无效，不触发 node-drop 事件
-  if (!dropEvent || !dropEvent.dragNode) {
-    console.log('❌ 无效的拖拽事件，跳过 node-drop 触发')
+  // 对于跨树拖拽，即使 tree.onDrop 返回 null，也要触发 node-drop 事件
+  // 让 Tree 组件来处理跨树拖拽逻辑
+  if (!dropEvent) {
+    console.log('⚠️ tree.onDrop 返回 null，可能是跨树拖拽，仍然触发 node-drop 事件')
+    // 创建一个基础的 dropEvent 对象，让 Tree 组件处理
+    dropEvent = {
+      originalEvent: event,
+      dragNode: null as any, // 将在 Tree 组件中设置
+      dropNode: props.node,
+      dropIndex: 0,
+      dropPosition: 'inside',
+      sourceTreeId: undefined,
+      targetTreeId: undefined,
+      isCrossTree: false,
+      accept: () => {},
+      reject: () => {}
+    }
+  }
+  
+  // 如果仍然没有有效的事件对象，才跳过
+  if (!dropEvent) {
+    console.log('❌ 无法创建拖拽事件对象，跳过 node-drop 触发')
     return
   }
   
