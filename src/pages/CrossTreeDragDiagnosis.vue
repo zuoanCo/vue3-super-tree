@@ -184,6 +184,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import Tree from '@/components/Tree.vue'
+import type { TreeNode } from '@/lib/types'
 
 // 树配置
 const treeAConfig = reactive({
@@ -201,7 +202,7 @@ const treeBConfig = reactive({
 })
 
 // 树数据
-const treeAData = ref([
+const treeAData = ref<TreeNode[]>([
   {
     key: 'a1',
     label: '节点 A1',
@@ -220,7 +221,7 @@ const treeAData = ref([
   { key: 'a3', label: '节点 A3' }
 ])
 
-const treeBData = ref([
+const treeBData = ref<TreeNode[]>([
   {
     key: 'b1',
     label: '节点 B1',

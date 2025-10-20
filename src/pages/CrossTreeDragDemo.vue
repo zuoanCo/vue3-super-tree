@@ -51,7 +51,7 @@
           </div>
           <div class="p-4">
             <Tree
-              :data="leftTreeData"
+              :value="leftTreeData"
               :dragdrop="true"
               dragdrop-scope="cross-tree-demo"
               :cross-tree-auto-update="autoUpdateEnabled"
@@ -71,7 +71,7 @@
           </div>
           <div class="p-4">
             <Tree
-              :data="rightTreeData"
+              :value="rightTreeData"
               :dragdrop="true"
               dragdrop-scope="cross-tree-demo"
               :cross-tree-auto-update="autoUpdateEnabled"
@@ -154,7 +154,7 @@
 import { ref, reactive } from 'vue'
 import Tree from '../components/Tree.vue'
 import { moveCrossTreeNode } from '../lib/utils'
-import type { TreeNode, CrossTreeDropEvent } from '../types'
+import type { TreeNode, CrossTreeDropEvent } from '../lib/types'
 
 // 自动更新开关
 const autoUpdateEnabled = ref(true)
@@ -176,79 +176,79 @@ const logs = ref<Array<{
 // 左侧树数据 - 项目文件树
 const leftTreeData = ref<TreeNode[]>([
   {
-    id: 'src',
+    key: 'src',
     label: 'src',
     children: [
       {
-        id: 'components',
+        key: 'components',
         label: 'components',
         children: [
-          { id: 'Tree.vue', label: 'Tree.vue' },
-          { id: 'TreeNode.vue', label: 'TreeNode.vue' }
+          { key: 'Tree.vue', label: 'Tree.vue' },
+          { key: 'TreeNode.vue', label: 'TreeNode.vue' }
         ]
       },
       {
-        id: 'pages',
+        key: 'pages',
         label: 'pages',
         children: [
-          { id: 'Home.vue', label: 'Home.vue' },
-          { id: 'Demo.vue', label: 'Demo.vue' }
+          { key: 'Home.vue', label: 'Home.vue' },
+          { key: 'Demo.vue', label: 'Demo.vue' }
         ]
       },
-      { id: 'main.ts', label: 'main.ts' },
-      { id: 'App.vue', label: 'App.vue' }
+      { key: 'main.ts', label: 'main.ts' },
+      { key: 'App.vue', label: 'App.vue' }
     ]
   },
   {
-    id: 'public',
+    key: 'public',
     label: 'public',
     children: [
-      { id: 'index.html', label: 'index.html' },
-      { id: 'favicon.ico', label: 'favicon.ico' }
+      { key: 'index.html', label: 'index.html' },
+      { key: 'favicon.ico', label: 'favicon.ico' }
     ]
   },
-  { id: 'package.json', label: 'package.json' },
-  { id: 'vite.config.ts', label: 'vite.config.ts' }
+  { key: 'package.json', label: 'package.json' },
+  { key: 'README.md', label: 'README.md' }
 ])
 
 // 右侧树数据 - 任务分类树
 const rightTreeData = ref<TreeNode[]>([
   {
-    id: 'frontend',
+    key: 'frontend',
     label: '前端开发',
     children: [
       {
-        id: 'ui-tasks',
+        key: 'ui-tasks',
         label: 'UI任务',
         children: [
-          { id: 'design-header', label: '设计页头' },
-          { id: 'create-sidebar', label: '创建侧边栏' }
+          { key: 'design-header', label: '设计页头' },
+          { key: 'create-sidebar', label: '创建侧边栏' }
         ]
       },
       {
-        id: 'feature-tasks',
+        key: 'feature-tasks',
         label: '功能任务',
         children: [
-          { id: 'add-search', label: '添加搜索功能' },
-          { id: 'implement-filter', label: '实现过滤器' }
+          { key: 'add-search', label: '添加搜索功能' },
+          { key: 'implement-filter', label: '实现过滤器' }
         ]
       }
     ]
   },
   {
-    id: 'backend',
+    key: 'backend',
     label: '后端开发',
     children: [
-      { id: 'api-design', label: 'API设计' },
-      { id: 'database-schema', label: '数据库设计' }
+      { key: 'api-design', label: 'API设计' },
+      { key: 'database-schema', label: '数据库设计' }
     ]
   },
   {
-    id: 'testing',
+    key: 'testing',
     label: '测试',
     children: [
-      { id: 'unit-tests', label: '单元测试' },
-      { id: 'integration-tests', label: '集成测试' }
+      { key: 'unit-tests', label: '单元测试' },
+      { key: 'integration-tests', label: '集成测试' }
     ]
   }
 ])
@@ -288,7 +288,7 @@ const onCrossTreeDragEnd = (event: any) => {
 
 // 跨树拖拽放置事件
 const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
-  const { sourceTreeId, targetTreeId, draggedNodes, targetNode, position } = event
+  const { sourceTreeId, targetTreeId, dragNode, dropNode, dropPosition } = event
   
   addLog('info', `跨树拖拽: 从 ${sourceTreeId} 到 ${targetTreeId}`)
   
@@ -306,17 +306,26 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
     }
     
     // 执行跨树移动
-    const success = moveCrossTreeNode(
+    const result = moveCrossTreeNode(
       sourceTreeNodes,
       targetTreeNodes,
-      draggedNodes,
-      targetNode,
-      position
+      dragNode.key,
+      dropNode.key,
+      dropPosition
     )
     
-    if (success) {
+    if (result.success) {
+      // 更新数据
+      if (sourceTreeId === 'tree-0') {
+        leftTreeData.value = result.sourceNodes
+        rightTreeData.value = result.targetNodes
+      } else {
+        rightTreeData.value = result.sourceNodes
+        leftTreeData.value = result.targetNodes
+      }
+      
       event.accept()
-      addLog('success', `成功移动 ${draggedNodes.length} 个节点: ${draggedNodes.map(n => n.label).join(', ')}`)
+      addLog('success', `成功移动节点: ${dragNode.label}`)
     } else {
       event.reject()
       addLog('error', '跨树移动失败: 无法完成节点移动操作')

@@ -1080,6 +1080,7 @@ export function calculateDropInfo(
   position: TreeDropPosition,
   treeId: string
 ): {
+  targetTreeId: string;
   newParentNode: TreeNode | null;
   newParentLabel: string;
   newParentKey: string | number | null;
@@ -1087,6 +1088,7 @@ export function calculateDropInfo(
   newLevel: number;
   newPath: string;
   newFullPath: string[];
+  newSiblings: TreeNode[];
   targetData: TreeNode[];
 } | null {
   // 获取目标节点的详细信息
@@ -1098,6 +1100,7 @@ export function calculateDropInfo(
   let newLevel = 0
   let newPath = ''
   let newFullPath: string[] = []
+  let newSiblings: TreeNode[] = []
   
   if (position === 'inside') {
     // 放置在节点内部
@@ -1106,10 +1109,12 @@ export function calculateDropInfo(
     newLevel = dropNodeInfo.level + 1
     newFullPath = [...dropNodeInfo.fullPath]
     newPath = newFullPath.join(' > ')
+    newSiblings = dropNode.children || []
   } else {
     // 放置在节点上方或下方
     newParentNode = dropNodeInfo.parentNode
     newLevel = dropNodeInfo.level
+    newSiblings = dropNodeInfo.siblings
     
     if (position === 'above') {
       newIndex = dropNodeInfo.index
@@ -1127,6 +1132,7 @@ export function calculateDropInfo(
   }
   
   return {
+    targetTreeId: treeId,
     newParentNode,
     newParentLabel: newParentNode?.label || '根目录',
     newParentKey: newParentNode?.key || null,
@@ -1134,6 +1140,7 @@ export function calculateDropInfo(
     newLevel,
     newPath,
     newFullPath,
+    newSiblings,
     targetData: targetNodes
   }
 }

@@ -1140,30 +1140,27 @@ const addToPendingOperations = (event: TreeNodeDropEvent | CrossTreeDropEvent) =
   const operation: PendingOperation = {
     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     timestamp: Date.now(),
-    operationType: event.isCrossTree ? 'cross-tree-move' : 'move',
     isCrossTree: event.isCrossTree || false,
     description: generateOperationDescription(event),
+    dragNode: event.dragNode,
+    dropNode: event.dropNode,
+    dropPosition: event.dropPosition as string,
     
     // 拖拽前信息
     beforeDrag: {
       sourceTreeId: event.sourceTreeId || props.id || '',
-      parentNode: getNodeDetailedInfo(findParentNode(props.value || [], event.dragNode)),
-      index: findNodeIndex(props.value || [], event.dragNode),
-      path: findNodePath(props.value || [], event.dragNode.key),
-      node: getNodeDetailedInfo(event.dragNode)
+      ...getNodeDetailedInfo(props.value || [], event.dragNode.key, event.sourceTreeId || props.id || '')
     },
     
     // 拖拽后信息
-    afterDrop: {
-      targetTreeId: event.targetTreeId || props.id || '',
-      parentNode: getNodeDetailedInfo(event.dropPosition === 'inside' ? event.dropNode : findParentNode(props.value || [], event.dropNode)),
-      index: calculateDropIndex(event),
-      path: calculateDropPath(event),
-      position: {
-        dropPosition: event.dropPosition,
-        dropIndex: event.dropIndex || 0,
-        relativeTo: getNodeDetailedInfo(event.dropNode)
-      }
+    afterDrop: calculateDropInfo(props.value || [], event.dropNode, event.dropPosition as any, event.targetTreeId || props.id || ''),
+    
+    // 操作信息
+    operationInfo: {
+      isCrossTree: event.isCrossTree || false,
+      timestamp: Date.now(),
+      operationType: 'move',
+      description: generateOperationDescription(event)
     },
     
     // 操作回调
@@ -1246,9 +1243,9 @@ const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEv
     const targetTreeId = event.targetTreeId || '未知目标树'
     
     switch (event.dropPosition) {
-      case 'before':
+      case 'above':
         return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之前`
-      case 'after':
+      case 'below':
         return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之后`
       case 'inside':
         return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 内部`
@@ -1257,9 +1254,9 @@ const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEv
     }
   } else {
     switch (event.dropPosition) {
-      case 'before':
+      case 'above':
         return `将 "${dragLabel}" 移动到 "${dropLabel}" 之前`
-      case 'after':
+      case 'below':
         return `将 "${dragLabel}" 移动到 "${dropLabel}" 之后`
       case 'inside':
         return `将 "${dragLabel}" 移动到 "${dropLabel}" 内部`
@@ -1343,11 +1340,11 @@ const calculateDropIndex = (event: TreeNodeDropEvent | CrossTreeDropEvent): numb
     return event.dropNode.children ? event.dropNode.children.length : 0
   }
   
-  // 对于 before/after，需要找到 dropNode 在其父节点中的索引
+  // 对于 above/below，需要找到 dropNode 在其父节点中的索引
   const parentNode = findParentNode(props.value || [], event.dropNode)
   if (parentNode && parentNode.children) {
     const dropNodeIndex = parentNode.children.findIndex(child => child.key === event.dropNode.key)
-    return event.dropPosition === 'after' ? dropNodeIndex + 1 : dropNodeIndex
+    return event.dropPosition === 'below' ? dropNodeIndex + 1 : dropNodeIndex
   }
   
   return 0

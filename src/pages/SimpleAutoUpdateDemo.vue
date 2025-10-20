@@ -260,9 +260,9 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
       if (isFromSource) {
         // 从源树拖拽到目标树
         addLog('info', '📂 从源树拖拽到目标树')
-        addLog('debug', `拖拽节点: ${event.dragNode.key} (${event.dragNode.label})`)
-        addLog('debug', `目标节点: ${event.dropNode.key} (${event.dropNode.label})`)
-        addLog('debug', `拖拽位置: ${event.dropPosition}`)
+        addLog('info', `拖拽节点: ${event.dragNode.key} (${event.dragNode.label})`)
+    addLog('info', `目标节点: ${event.dropNode.key} (${event.dropNode.label})`)
+    addLog('info', `拖拽位置: ${event.dropPosition}`)
         
         // 使用 moveCrossTreeNode 处理跨树数据移动
         const result = moveCrossTreeNode(
@@ -279,8 +279,8 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
           targetData.value = result.targetNodes  // 更新目标树（添加了节点）
           
           addLog('success', '✅ 跨树数据更新成功')
-          addLog('debug', `源树节点数: ${sourceData.value.length}`)
-          addLog('debug', `目标树节点数: ${targetData.value.length}`)
+          addLog('info', `源树节点数: ${sourceData.value.length}`)
+        addLog('info', `目标树节点数: ${targetData.value.length}`)
           
           // 调用 accept 完成拖拽
           if (event.accept) {
@@ -288,7 +288,7 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
           }
         } else {
           addLog('error', '❌ 跨树数据更新失败')
-          addLog('debug', '检查控制台以获取更多错误信息')
+          addLog('info', '检查控制台以获取更多错误信息')
           
           // 调用 reject 取消拖拽
           if (event.reject) {
@@ -298,9 +298,9 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
       } else {
         // 从目标树拖拽到源树
         addLog('info', '📂 从目标树拖拽到源树')
-        addLog('debug', `拖拽节点: ${event.dragNode.key} (${event.dragNode.label})`)
-        addLog('debug', `目标节点: ${event.dropNode.key} (${event.dropNode.label})`)
-        addLog('debug', `拖拽位置: ${event.dropPosition}`)
+        addLog('info', `拖拽节点: ${event.dragNode.key} (${event.dragNode.label})`)
+        addLog('info', `目标节点: ${event.dropNode.key} (${event.dropNode.label})`)
+        addLog('info', `拖拽位置: ${event.dropPosition}`)
         
         // 使用 moveCrossTreeNode 处理跨树数据移动
         // 注意：从目标树拖拽到源树时，targetData 是源树，sourceData 是目标树
@@ -318,8 +318,8 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
           sourceData.value = result.targetNodes  // 更新目标树（添加了节点）
           
           addLog('success', '✅ 跨树数据更新成功')
-          addLog('debug', `源树节点数: ${targetData.value.length}`)
-          addLog('debug', `目标树节点数: ${sourceData.value.length}`)
+          addLog('info', `源树节点数: ${targetData.value.length}`)
+          addLog('info', `目标树节点数: ${sourceData.value.length}`)
           
           // 调用 accept 完成拖拽
           if (event.accept) {
@@ -327,7 +327,7 @@ const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
           }
         } else {
           addLog('error', '❌ 跨树数据更新失败')
-          addLog('debug', '检查控制台以获取更多错误信息')
+          addLog('info', '检查控制台以获取更多错误信息')
           
           // 调用 reject 取消拖拽
           if (event.reject) {

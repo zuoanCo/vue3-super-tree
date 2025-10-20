@@ -244,6 +244,14 @@ export interface CrossTreeDragCancelEvent extends CrossTreeDragEvent {
 
 // 待确认操作接口
 export interface PendingOperation {
+  /** 操作唯一标识 */
+  id: string;
+  /** 操作描述 */
+  description: string;
+  /** 操作时间戳 */
+  timestamp: number;
+  /** 是否跨树拖拽 */
+  isCrossTree: boolean;
   /** 被拖拽的节点 */
   dragNode: TreeNode;
   /** 拖拽目标节点 */
@@ -254,6 +262,8 @@ export interface PendingOperation {
   beforeDrag: {
     /** 源树ID */
     sourceTreeId: string;
+    /** 节点信息 */
+    node: TreeNode | null;
     /** 父节点 */
     parentNode: TreeNode | null;
     /** 父节点标签 */
@@ -272,7 +282,7 @@ export interface PendingOperation {
     siblings: TreeNode[];
     /** 源数据 */
     sourceData: TreeNode[];
-  };
+  } | null;
   /** 拖拽后的详细信息 */
   afterDrop: {
     /** 目标树ID */
@@ -295,7 +305,7 @@ export interface PendingOperation {
     newSiblings: TreeNode[];
     /** 目标数据 */
     targetData: TreeNode[];
-  };
+  } | null;
   /** 操作信息 */
   operationInfo: {
     /** 是否跨树拖拽 */
