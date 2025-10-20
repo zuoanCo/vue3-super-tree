@@ -11,13 +11,13 @@
 
 本项目采用 [MIT 协议](./LICENSE) 开源，您可以自由使用、修改和分发本项目。
 
-## 🆕 v1.3.5 更新亮点
+## 🆕 v1.4.0 更新亮点
 
-- **跨树拖拽功能完善** - 修复跨树拖拽时 `onNodeDrop` 事件不触发的问题，确保事件可靠触发
-- **拖拽状态管理优化** - 改进全局拖拽状态管理，修复拖拽节点信息丢失问题
-- **集成测试体系** - 新增完整的集成测试项目，包含自动化验证脚本和使用指南
-- **文档完善** - 添加详细的使用指南和故障排除文档，提升开发体验
-- **稳定性提升** - 全面验证插件功能，确保与 demo 相同的稳定性和可靠性
+- **跨树拖拽自动更新功能完整集成** - 将 TreeDemo 中的高级跨树拖拽功能完全集成到插件核心，提供开箱即用的跨树拖拽体验
+- **CrossTreeDataProvider 接口** - 新增跨树数据提供者接口，支持灵活的数据源管理和自定义数据更新逻辑
+- **增强的拖拽状态管理** - 新增 useCrossTreeDragState 全局状态管理，确保跨树拖拽状态的一致性和可靠性
+- **完善的错误处理** - 修复 TypeError: Cannot read properties of null (reading 'length') 等关键错误，提升组件稳定性
+- **插件化架构优化** - 所有跨树拖拽功能现已完全集成到插件核心，符合插件规范，无需额外配置
 
 ## 🚀 特性
 
@@ -50,13 +50,14 @@
 
 ## 📋 版本信息
 
-**当前最新版本：v1.3.5**
+**当前最新版本：v1.4.0**
 
 本版本包含以下主要改进：
-- 修复跨树拖拽功能中的关键问题，确保事件可靠触发
-- 优化拖拽状态管理，解决节点信息丢失问题
-- 新增完整的集成测试体系和文档
-- 全面提升插件稳定性和可靠性
+- 完整集成跨树拖拽自动更新功能到插件核心
+- 新增 CrossTreeDataProvider 接口，支持灵活的数据源管理
+- 增强拖拽状态管理，新增全局状态管理机制
+- 修复关键错误，提升组件稳定性和可靠性
+- 优化插件化架构，所有功能完全集成到核心
 
 ## 📦 安装
 
@@ -195,6 +196,7 @@ const expandedKeys = ref<TreeExpandedKeys>({})
 | `dragdropScope` | `string` | `undefined` | 拖拽作用域 |
 | `autoUpdate` | `boolean` | `false` | 拖拽时是否自动更新数据源 |
 | `crossTreeAutoUpdate` | `boolean` | `false` | 跨树拖拽时是否自动更新数据源 |
+| `crossTreeDataProvider` | `CrossTreeDataProvider` | `undefined` | 跨树数据提供者，用于获取和更新不同树的数据 |
 | `filter` | `boolean` | `false` | 是否启用过滤 |
 | `filterMode` | `'lenient' \| 'strict'` | `'lenient'` | 过滤模式 |
 | `filterBy` | `string` | `'label'` | 过滤字段 |
@@ -241,6 +243,18 @@ interface TreeNode {
   droppable?: boolean         // 是否可作为拖拽目标
   styleClass?: string         // 自定义样式类
   style?: Record<string, any> // 自定义样式
+}
+```
+
+### CrossTreeDataProvider 接口
+
+```typescript
+interface CrossTreeDataProvider {
+  // 获取指定树的数据
+  getTreeData: (treeId: string) => TreeNode[] | null | undefined
+  
+  // 更新指定树的数据
+  updateTreeData: (treeId: string, newData: TreeNode[]) => void
 }
 ```
 
@@ -375,7 +389,98 @@ const onNodeDrop = (event) => {
 </script>
 ```
 
-### 5. 跨树拖拽
+### 5. 跨树拖拽自动更新
+
+#### 推荐：自动更新模式
+
+```vue
+<template>
+  <div class="flex gap-4">
+    <!-- 源树 -->
+    <div class="w-1/2">
+      <h3>源树</h3>
+      <Tree
+        id="source-tree"
+        :value="sourceData"
+        :dragdrop="true"
+        dragdropScope="cross-tree"
+        :crossTreeAutoUpdate="true"
+        :crossTreeDataProvider="crossTreeDataProvider"
+        @cross-tree-drop="onCrossTreeDrop"
+      />
+    </div>
+    
+    <!-- 目标树 -->
+    <div class="w-1/2">
+      <h3>目标树</h3>
+      <Tree
+        id="target-tree"
+        :value="targetData"
+        :dragdrop="true"
+        dragdropScope="cross-tree"
+        :crossTreeAutoUpdate="true"
+        :crossTreeDataProvider="crossTreeDataProvider"
+        @cross-tree-drop="onCrossTreeDrop"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Tree } from 'vue3-super-tree'
+import 'vue3-super-tree/style.css'
+
+const sourceData = ref([
+  {
+    key: 'source-1',
+    label: '源节点 1',
+    children: [
+      { key: 'source-1-1', label: '源子节点 1-1' },
+      { key: 'source-1-2', label: '源子节点 1-2' }
+    ]
+  }
+])
+
+const targetData = ref([
+  {
+    key: 'target-1',
+    label: '目标节点 1',
+    children: []
+  }
+])
+
+// 跨树数据提供者
+const crossTreeDataProvider = {
+  getTreeData: (treeId) => {
+    if (treeId === 'source-tree') return sourceData.value
+    if (treeId === 'target-tree') return targetData.value
+    return null
+  },
+  
+  updateTreeData: (treeId, newData) => {
+    if (treeId === 'source-tree') {
+      sourceData.value = newData
+    } else if (treeId === 'target-tree') {
+      targetData.value = newData
+    }
+  }
+}
+
+// 可选：监听跨树拖拽事件
+const onCrossTreeDrop = (event) => {
+  console.log('跨树拖拽完成:', {
+    sourceTreeId: event.sourceTreeId,
+    targetTreeId: event.targetTreeId,
+    dragNode: event.dragNode,
+    dropNode: event.dropNode,
+    dropIndex: event.dropIndex
+  })
+}
+</script>
+```
+
+### 6. 跨树拖拽手动模式
 
 #### 基础跨树拖拽
 
@@ -616,7 +721,7 @@ const validateDragOperation = (event) => {
 2. 手动控制模式下，必须调用 `accept()` 或 `reject()` 方法，否则拖拽状态不会清理
 3. 可以与 `autoUpdate` 参数配合使用，分别控制同树和跨树的拖拽行为
 
-### 6. 节点过滤
+### 7. 节点过滤
 
 ```vue
 <template>
@@ -634,7 +739,7 @@ import 'vue3-super-tree/style.css'
 </script>
 ```
 
-### 7. 懒加载
+### 8. 懒加载
 
 ```vue
 <template>

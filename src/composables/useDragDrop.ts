@@ -14,6 +14,7 @@ import type {
   CrossTreeDragCancelEvent
 } from '../lib/types'
 import { canDropNode, canCrossTreeDrop } from '../lib/utils'
+import { useCrossTreeDragState } from './useCrossTreeDragState'
 
 // 全局拖拽状态，用于跨树拖拽
 const globalDragState = ref<DragDropState>({
@@ -88,6 +89,9 @@ export function useDragDrop(
   }
 ): UseDragDropReturn {
   console.log('🔧 useDragDrop 初始化:', { dragdropScope, treeId })
+  
+  // 集成跨树拖拽状态管理
+  const crossTreeDragState = useCrossTreeDragState()
   
   // 拖拽状态
   const dragState = ref<DragDropState>({
@@ -194,7 +198,8 @@ export function useDragDrop(
       }
       
       // 获取所有选中的节点用于多选拖拽
-      selectedNodes = selectionState.getSelectedNodes()
+      const selectedNodesResult = selectionState.getSelectedNodes()
+      selectedNodes = selectedNodesResult || []
       console.log('📋 当前选中的节点:', selectedNodes.map(n => n.key))
     }
 
@@ -237,12 +242,12 @@ export function useDragDrop(
         scope: dragdropScope,
         sourceTreeId,
         // 多选拖拽支持
-        selectedNodes: selectedNodes.length > 1 ? selectedNodes.map(n => ({
+        selectedNodes: (selectedNodes && selectedNodes.length > 1) ? selectedNodes.map(n => ({
           key: n.key,
           label: n.label,
           data: n.data
         })) : undefined,
-        dragCount: selectedNodes.length > 1 ? selectedNodes.length : 1
+        dragCount: (selectedNodes && selectedNodes.length > 1) ? selectedNodes.length : 1
       }
       event.dataTransfer.setData('text/plain', JSON.stringify(dragData))
       
@@ -259,7 +264,7 @@ export function useDragDrop(
     target.classList.add('p-tree-node-dragging')
     
     // 添加多选拖拽的视觉反馈
-    if (selectedNodes.length > 1) {
+    if (selectedNodes && selectedNodes.length > 1) {
       // 创建拖拽计数器
       const dragCounter = document.createElement('div')
       dragCounter.className = 'p-tree-drag-counter'
@@ -280,6 +285,11 @@ export function useDragDrop(
     
     // 启动缓存清理调度
     scheduleCacheCleanup()
+    
+    // 启动跨树拖拽状态管理
+    if (sourceTreeId) {
+      crossTreeDragState.startCrossTreeDrag(node, sourceTreeId, false) // 默认非自动更新模式
+    }
     
     // 触发跨树拖拽开始事件
     if (emitCrossTreeEvent && sourceTreeId) {
@@ -393,6 +403,9 @@ export function useDragDrop(
       hasEnteredTarget: false,
       lastTargetTreeId: null
     }
+    
+    // 结束跨树拖拽状态管理
+    crossTreeDragState.endCrossTreeDrag(false) // 默认为失败，成功的情况在 onDrop 中处理
   }
 
   // 拖拽进入
@@ -530,6 +543,11 @@ export function useDragDrop(
         dropNode: node,
         dropPosition: position,
         targetTreeId: treeId
+      }
+      
+      // 更新跨树拖拽状态管理
+      if (isCrossTree && treeId) {
+        crossTreeDragState.updateTarget(treeId, node, position)
       }
     }
     
@@ -749,6 +767,9 @@ export function useDragDrop(
         // 重置拖拽状态
         resetDragState()
         
+        // 结束跨树拖拽状态管理（成功）
+        crossTreeDragState.endCrossTreeDrag(true)
+        
         // 如果是跨树拖拽成功，触发成功的结束事件
         if (emitCrossTreeEvent && isCrossTree && sourceTreeId && targetTreeId) {
           const successEndEvent: CrossTreeDragEndEvent = {
@@ -782,6 +803,9 @@ export function useDragDrop(
         
         // 重置拖拽状态
         resetDragState()
+        
+        // 结束跨树拖拽状态管理（失败）
+        crossTreeDragState.endCrossTreeDrag(false)
         
         // 如果是跨树拖拽被拒绝，触发取消的结束事件
         if (emitCrossTreeEvent && isCrossTree && sourceTreeId && targetTreeId) {
@@ -899,7 +923,20 @@ export function useDragDrop(
     isDroppable,
     getDragIndicatorClass,
     resetDragState,
-    setDragScope
+    setDragScope,
+    
+    // 跨树拖拽状态管理
+    crossTreeDragState: {
+      isActive: crossTreeDragState.isActive,
+      isDragging: crossTreeDragState.isDragging,
+      pendingOperations: crossTreeDragState.pendingOperations,
+      addPendingOperation: crossTreeDragState.addPendingOperation,
+      removePendingOperation: crossTreeDragState.removePendingOperation,
+      clearAllPendingOperations: crossTreeDragState.clearAllPendingOperations,
+      getPendingOperationsForTree: crossTreeDragState.getPendingOperationsForTree,
+      getCurrentDragInfo: crossTreeDragState.getCurrentDragInfo,
+      resetAllState: crossTreeDragState.resetAllState
+    }
   }
 }
 

@@ -1,129 +1,51 @@
 <template>
-  <div class="cross-tree-test">
-    <h1>跨树自动更新测试页面</h1>
+  <div class="cross-tree-auto-update-test">
+    <h1>跨树拖拽自动更新测试</h1>
+    <p>这个页面测试新的 crossTreeDataProvider 功能</p>
     
-    <div class="test-section">
-      <h2>测试 1: 使用 kebab-case 属性名 (cross-tree-auto-update)</h2>
-      <p class="test-description">
-        测试用户使用的 :cross-tree-auto-update="true" 是否有效
-      </p>
-      
-      <div class="test-controls">
-        <label>
-          <input type="checkbox" v-model="kebabCaseEnabled" />
-          启用 kebab-case 自动更新
-        </label>
+    <div class="controls">
+      <button @click="toggleAutoUpdate" :class="{ active: autoUpdateEnabled }">
+        {{ autoUpdateEnabled ? '禁用' : '启用' }} 自动更新
+      </button>
+      <button @click="resetData">重置数据</button>
+      <button @click="showLogs = !showLogs">{{ showLogs ? '隐藏' : '显示' }} 日志</button>
+    </div>
+    
+    <div class="tree-container">
+      <div class="tree-section">
+        <h3>源树 (source-tree)</h3>
+        <Tree
+          id="source-tree"
+          :value="sourceData"
+          dragdrop
+          dragdrop-scope="test-scope"
+          :cross-tree-auto-update="autoUpdateEnabled"
+          :cross-tree-data-provider="crossTreeDataProvider"
+          @cross-tree-drop="onCrossTreeDrop"
+          @update:value="sourceData = $event"
+        />
       </div>
       
-      <div class="tree-container">
-        <div class="tree-pair">
-          <div class="tree-wrapper">
-            <h3>源树 (kebab-case)</h3>
-            <Tree
-              ref="kebabTree1"
-              id="kebab-tree1"
-              :value="kebabData1"
-              :cross-tree-auto-update="kebabCaseEnabled"
-              :dragdrop="true"
-              dragdrop-scope="kebab-test"
-              @node-drop="onKebabDrop"
-              @cross-tree-drop="onKebabCrossDrop"
-              class="test-tree"
-            />
-          </div>
-          
-          <div class="tree-wrapper">
-            <h3>目标树 (kebab-case)</h3>
-            <Tree
-              ref="kebabTree2"
-              id="kebab-tree2"
-              :value="kebabData2"
-              :cross-tree-auto-update="kebabCaseEnabled"
-              :dragdrop="true"
-              dragdrop-scope="kebab-test"
-              @node-drop="onKebabDrop"
-              @cross-tree-drop="onKebabCrossDrop"
-              class="test-tree"
-            />
-          </div>
-        </div>
-        
-        <div class="test-result">
-          <h4>Kebab-case 测试结果:</h4>
-          <pre>{{ JSON.stringify({ kebabData1, kebabData2 }, null, 2) }}</pre>
-        </div>
+      <div class="tree-section">
+        <h3>目标树 (target-tree)</h3>
+        <Tree
+          id="target-tree"
+          :value="targetData"
+          dragdrop
+          dragdrop-scope="test-scope"
+          :cross-tree-auto-update="autoUpdateEnabled"
+          :cross-tree-data-provider="crossTreeDataProvider"
+          @cross-tree-drop="onCrossTreeDrop"
+          @update:value="targetData = $event"
+        />
       </div>
     </div>
     
-    <div class="test-section">
-      <h2>测试 2: 使用 camelCase 属性名 (crossTreeAutoUpdate)</h2>
-      <p class="test-description">
-        测试正确的 :crossTreeAutoUpdate="true" 是否有效
-      </p>
-      
-      <div class="test-controls">
-        <label>
-          <input type="checkbox" v-model="camelCaseEnabled" />
-          启用 camelCase 自动更新
-        </label>
-      </div>
-      
-      <div class="tree-container">
-        <div class="tree-pair">
-          <div class="tree-wrapper">
-            <h3>源树 (camelCase)</h3>
-            <Tree
-              ref="camelTree1"
-              id="camel-tree1"
-              :value="camelData1"
-              :crossTreeAutoUpdate="camelCaseEnabled"
-              :dragdrop="true"
-              dragdrop-scope="camel-test"
-              @node-drop="onCamelDrop"
-              @cross-tree-drop="onCamelCrossDrop"
-              class="test-tree"
-            />
-          </div>
-          
-          <div class="tree-wrapper">
-            <h3>目标树 (camelCase)</h3>
-            <Tree
-              ref="camelTree2"
-              id="camel-tree2"
-              :value="camelData2"
-              :crossTreeAutoUpdate="camelCaseEnabled"
-              :dragdrop="true"
-              dragdrop-scope="camel-test"
-              @node-drop="onCamelDrop"
-              @cross-tree-drop="onCamelCrossDrop"
-              class="test-tree"
-            />
-          </div>
-        </div>
-        
-        <div class="test-result">
-          <h4>CamelCase 测试结果:</h4>
-          <pre>{{ JSON.stringify({ camelData1, camelData2 }, null, 2) }}</pre>
-        </div>
-      </div>
-    </div>
-    
-    <div class="test-section">
-      <h2>Props 调试信息</h2>
-      <div class="debug-info">
-        <h4>Kebab Tree 1 Props:</h4>
-        <pre>{{ getTreeProps('kebab1') }}</pre>
-        <h4>Camel Tree 1 Props:</h4>
-        <pre>{{ getTreeProps('camel1') }}</pre>
-      </div>
-    </div>
-    
-    <div class="test-section">
-      <h2>测试日志</h2>
-      <div class="log-container">
-        <div v-for="(log, index) in testLogs" :key="index" class="log-entry">
+    <div v-if="showLogs" class="logs">
+      <h3>操作日志</h3>
+      <div class="log-list">
+        <div v-for="log in logs" :key="log.id" :class="['log-item', log.type]">
           <span class="log-time">{{ log.time }}</span>
-          <span class="log-type" :class="log.type">{{ log.type }}</span>
           <span class="log-message">{{ log.message }}</span>
         </div>
       </div>
@@ -132,297 +54,264 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, reactive } from 'vue'
 import Tree from '../components/Tree.vue'
-import type { TreeNode, TreeNodeDropEvent, CrossTreeDropEvent } from '../lib/types'
+import type { TreeNode, CrossTreeDataProvider, CrossTreeDropEvent } from '../lib/types'
 
-// 测试数据
-const kebabData1 = ref<TreeNode[]>([
+// 数据状态
+const sourceData = ref<TreeNode[]>([
   {
-    key: 'kebab-1',
-    label: 'Kebab 节点 1',
+    key: 'source-1',
+    label: '源文件夹 1',
     children: [
-      { key: 'kebab-1-1', label: 'Kebab 子节点 1-1' },
-      { key: 'kebab-1-2', label: 'Kebab 子节点 1-2' }
+      { key: 'source-1-1', label: '文档 A.txt' },
+      { key: 'source-1-2', label: '图片 B.jpg' },
+      { key: 'source-1-3', label: '视频 C.mp4' }
+    ]
+  },
+  {
+    key: 'source-2',
+    label: '源文件夹 2',
+    children: [
+      { key: 'source-2-1', label: '代码 D.js' },
+      { key: 'source-2-2', label: '样式 E.css' }
     ]
   }
 ])
 
-const kebabData2 = ref<TreeNode[]>([
+const targetData = ref<TreeNode[]>([
   {
-    key: 'kebab-target',
-    label: 'Kebab 目标文件夹',
+    key: 'target-1',
+    label: '目标文件夹 1',
     children: []
-  }
-])
-
-const camelData1 = ref<TreeNode[]>([
+  },
   {
-    key: 'camel-1',
-    label: 'Camel 节点 1',
-    children: [
-      { key: 'camel-1-1', label: 'Camel 子节点 1-1' },
-      { key: 'camel-1-2', label: 'Camel 子节点 1-2' }
-    ]
-  }
-])
-
-const camelData2 = ref<TreeNode[]>([
-  {
-    key: 'camel-target',
-    label: 'Camel 目标文件夹',
+    key: 'target-2',
+    label: '目标文件夹 2',
     children: []
   }
 ])
 
 // 控制状态
-const kebabCaseEnabled = ref(true)
-const camelCaseEnabled = ref(true)
+const autoUpdateEnabled = ref(true)
+const showLogs = ref(true)
 
-// 组件引用
-const kebabTree1 = ref()
-const kebabTree2 = ref()
-const camelTree1 = ref()
-const camelTree2 = ref()
-
-// 测试日志
-const testLogs = ref<Array<{
+// 日志系统
+interface LogEntry {
+  id: number
   time: string
-  type: 'info' | 'success' | 'error' | 'warning' | 'cross-drop' | 'drop'
+  type: 'info' | 'success' | 'warning' | 'error'
   message: string
-}>>([]);
+}
 
-// 日志记录函数已移除，直接使用 testLogs.value.push()
+const logs = ref<LogEntry[]>([])
+let logId = 0
 
-// 获取组件 props 用于调试
-const getTreeProps = (treeType: string) => {
-  try {
-    let treeRef
-    switch (treeType) {
-      case 'kebab1':
-        treeRef = kebabTree1.value
-        break
-      case 'camel1':
-        treeRef = camelTree1.value
-        break
-      default:
-        return 'Unknown tree type'
-    }
+const addLog = (type: LogEntry['type'], message: string) => {
+  logs.value.push({
+    id: logId++,
+    time: new Date().toLocaleTimeString(),
+    type,
+    message
+  })
+  
+  // 保持最多 50 条日志
+  if (logs.value.length > 50) {
+    logs.value.shift()
+  }
+}
+
+// 跨树数据提供者
+const crossTreeDataProvider: CrossTreeDataProvider = {
+  getTreeData: (treeId: string) => {
+    addLog('info', `获取树数据: ${treeId}`)
     
-    if (treeRef && treeRef.$props) {
-      return {
-        crossTreeAutoUpdate: treeRef.$props.crossTreeAutoUpdate,
-        dragdrop: treeRef.$props.dragdrop,
-        dragdropScope: treeRef.$props.dragdropScope,
-        autoUpdate: treeRef.$props.autoUpdate
-      }
+    if (treeId === 'source-tree') {
+      return sourceData.value
+    } else if (treeId === 'target-tree') {
+      return targetData.value
+    } else {
+      addLog('error', `未知的树ID: ${treeId}`)
+      return []
     }
-    return 'Props not available'
-  } catch (error) {
-    return `Error: ${error}`
+  },
+  
+  updateTreeData: (treeId: string, data: TreeNode[]) => {
+    addLog('success', `更新树数据: ${treeId}, 节点数: ${data.length}`)
+    
+    if (treeId === 'source-tree') {
+      sourceData.value = data
+    } else if (treeId === 'target-tree') {
+      targetData.value = data
+    } else {
+      addLog('error', `无法更新未知的树ID: ${treeId}`)
+    }
   }
 }
 
 // 事件处理
-const onKebabDrop = (event: TreeNodeDropEvent) => {
-  const log = `[Kebab Drop] 拖拽节点: ${event.dragNode.label} -> ${event.dropNode.label}, 位置: ${event.dropPosition}, 跨树: ${event.isCrossTree}, 自动更新: ${kebabCaseEnabled.value}`
-  testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'drop', message: log })
+const onCrossTreeDrop = (event: CrossTreeDropEvent) => {
+  addLog('info', `跨树拖拽事件: ${event.dragNode.label} 从 ${event.sourceTreeId} 到 ${event.targetTreeId}`)
+  addLog('info', `自动更新模式: ${autoUpdateEnabled.value}`)
   
-  // 检查自动更新状态
-  if (kebabCaseEnabled.value) {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Kebab] 自动更新已启用，组件会自动调用 accept()' })
-    // 不手动调用 accept()，让组件的自动更新逻辑处理
-  } else {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Kebab] 自动更新已禁用，手动调用 accept()' })
-    event.accept()
+  if (!autoUpdateEnabled.value) {
+    addLog('warning', '自动更新已禁用，需要手动处理')
   }
 }
 
-const onKebabCrossDrop = (event: CrossTreeDropEvent) => {
-  const log = `[Kebab Cross Drop] 拖拽节点: ${event.dragNode.label} -> ${event.dropNode.label}, 位置: ${event.dropPosition}, 跨树: ${event.isCrossTree}, 自动更新: ${kebabCaseEnabled.value}`
-  testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'cross-drop', message: log })
-  
-  // 检查自动更新状态
-  if (kebabCaseEnabled.value) {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Kebab Cross] 自动更新已启用，组件会自动调用 accept()' })
-    // 不手动调用 accept()，让组件的自动更新逻辑处理
-  } else {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Kebab Cross] 自动更新已禁用，手动调用 accept()' })
-    event.accept()
-  }
+// 控制方法
+const toggleAutoUpdate = () => {
+  autoUpdateEnabled.value = !autoUpdateEnabled.value
+  addLog('info', `跨树拖拽自动更新: ${autoUpdateEnabled.value ? '启用' : '禁用'}`)
 }
 
-const onCamelDrop = (event: TreeNodeDropEvent) => {
-  const log = `[Camel Drop] 拖拽节点: ${event.dragNode.label} -> ${event.dropNode.label}, 位置: ${event.dropPosition}, 跨树: ${event.isCrossTree}, 自动更新: ${camelCaseEnabled.value}`
-  testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'drop', message: log })
+const resetData = () => {
+  sourceData.value = [
+    {
+      key: 'source-1',
+      label: '源文件夹 1',
+      children: [
+        { key: 'source-1-1', label: '文档 A.txt' },
+        { key: 'source-1-2', label: '图片 B.jpg' },
+        { key: 'source-1-3', label: '视频 C.mp4' }
+      ]
+    },
+    {
+      key: 'source-2',
+      label: '源文件夹 2',
+      children: [
+        { key: 'source-2-1', label: '代码 D.js' },
+        { key: 'source-2-2', label: '样式 E.css' }
+      ]
+    }
+  ]
   
-  // 检查自动更新状态
-  if (camelCaseEnabled.value) {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Camel] 自动更新已启用，组件会自动调用 accept()' })
-    // 不手动调用 accept()，让组件的自动更新逻辑处理
-  } else {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Camel] 自动更新已禁用，手动调用 accept()' })
-    event.accept()
-  }
-}
-
-const onCamelCrossDrop = (event: CrossTreeDropEvent) => {
-  const log = `[Camel Cross Drop] 拖拽节点: ${event.dragNode.label} -> ${event.dropNode.label}, 位置: ${event.dropPosition}, 跨树: ${event.isCrossTree}, 自动更新: ${camelCaseEnabled.value}`
-  testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'cross-drop', message: log })
+  targetData.value = [
+    {
+      key: 'target-1',
+      label: '目标文件夹 1',
+      children: []
+    },
+    {
+      key: 'target-2',
+      label: '目标文件夹 2',
+      children: []
+    }
+  ]
   
-  // 检查自动更新状态
-  if (camelCaseEnabled.value) {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Camel Cross] 自动更新已启用，组件会自动调用 accept()' })
-    // 不手动调用 accept()，让组件的自动更新逻辑处理
-  } else {
-    testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '[Camel Cross] 自动更新已禁用，手动调用 accept()' })
-    event.accept()
-  }
+  addLog('info', '数据已重置')
 }
 
 // 初始化日志
-testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '跨树自动更新测试页面已加载' })
-testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '请尝试在不同的树之间拖拽节点来测试自动更新功能' })
-
-// 等待组件挂载后检查 props
-nextTick(() => {
-  testLogs.value.push({ time: new Date().toLocaleTimeString(), type: 'info', message: '组件已挂载，检查 props...' })
-})
+addLog('info', '跨树拖拽自动更新测试页面已加载')
+addLog('info', '请尝试从左侧源树拖拽节点到右侧目标树')
 </script>
 
 <style scoped>
-.cross-tree-test {
+.cross-tree-auto-update-test {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.test-section {
-  margin-bottom: 40px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.test-section h2 {
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.test-description {
-  color: #666;
-  margin-bottom: 15px;
-  font-style: italic;
-}
-
-.test-controls {
-  margin-bottom: 20px;
-}
-
-.test-controls label {
+.controls {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.controls button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.controls button:hover {
+  background: #f5f5f5;
+}
+
+.controls button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
 }
 
 .tree-container {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 15px;
-}
-
-.tree-pair {
   display: flex;
   gap: 20px;
-  margin-bottom: 20px;
+  margin: 20px 0;
 }
 
-.tree-wrapper {
+.tree-section {
   flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fafafa;
 }
 
-.tree-wrapper h3 {
-  margin-bottom: 10px;
-  color: #555;
+.tree-section h3 {
+  margin: 0 0 16px 0;
+  color: #333;
   font-size: 16px;
 }
 
-.test-tree {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 10px;
-  min-height: 150px;
-  background-color: #fafafa;
+.logs {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9f9f9;
 }
 
-.test-result {
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  padding: 15px;
-}
-
-.test-result h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
+.logs h3 {
+  margin: 0 0 16px 0;
   color: #333;
 }
 
-.test-result pre {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 10px;
-  overflow-x: auto;
-  font-size: 12px;
-  line-height: 1.4;
-  max-height: 200px;
-}
-
-.log-container {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 15px;
+.log-list {
   max-height: 300px;
   overflow-y: auto;
 }
 
-.log-entry {
+.log-item {
   display: flex;
   gap: 10px;
-  margin-bottom: 5px;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
   font-family: monospace;
   font-size: 12px;
 }
 
+.log-item:last-child {
+  border-bottom: none;
+}
+
 .log-time {
-  color: #6c757d;
+  color: #666;
   min-width: 80px;
-}
-
-.log-type {
-  min-width: 60px;
-  font-weight: bold;
-}
-
-.log-type.info {
-  color: #0dcaf0;
-}
-
-.log-type.success {
-  color: #198754;
-}
-
-.log-type.error {
-  color: #dc3545;
-}
-
-.log-type.warning {
-  color: #fd7e14;
 }
 
 .log-message {
   flex: 1;
+}
+
+.log-item.info .log-message {
+  color: #333;
+}
+
+.log-item.success .log-message {
+  color: #28a745;
+}
+
+.log-item.warning .log-message {
+  color: #ffc107;
+}
+
+.log-item.error .log-message {
+  color: #dc3545;
 }
 </style>

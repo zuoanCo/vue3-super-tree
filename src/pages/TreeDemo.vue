@@ -1110,7 +1110,6 @@
               :dragdrop="true"
               selection-mode="single"
               dragdrop-scope="auto-cross-tree"
-              :expanded-keys="autoUpdateExpandedKeys2"
               class="demo-tree cross-tree"
               @cross-tree-drop="onAutoUpdateCrossTreeDrop"
               @cross-tree-drag-start="onAutoUpdateDragStart"

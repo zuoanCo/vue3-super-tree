@@ -238,8 +238,125 @@ export interface CrossTreeDragEndEvent extends CrossTreeDragEvent {
 export interface CrossTreeDragCancelEvent extends CrossTreeDragEvent {
   /** 取消原因 */
   reason: 'escape' | 'invalid-drop' | 'user-cancel' | 'error';
-  /** 取消时的目标树ID（如果有） */
+  /** 目标树ID（可选） */
   targetTreeId?: string;
+}
+
+// 待确认操作接口
+export interface PendingOperation {
+  /** 被拖拽的节点 */
+  dragNode: TreeNode;
+  /** 拖拽目标节点 */
+  dropNode: TreeNode;
+  /** 拖拽位置 */
+  dropPosition: string;
+  /** 拖拽前的详细信息 */
+  beforeDrag: {
+    /** 源树ID */
+    sourceTreeId: string;
+    /** 父节点 */
+    parentNode: TreeNode | null;
+    /** 父节点标签 */
+    parentLabel: string;
+    /** 父节点键值 */
+    parentKey: string | number | null;
+    /** 在兄弟节点中的索引 */
+    index: number;
+    /** 节点层级 */
+    level: number;
+    /** 节点路径 */
+    path: string;
+    /** 完整路径数组 */
+    fullPath: string[];
+    /** 兄弟节点列表 */
+    siblings: TreeNode[];
+    /** 源数据 */
+    sourceData: TreeNode[];
+  };
+  /** 拖拽后的详细信息 */
+  afterDrop: {
+    /** 目标树ID */
+    targetTreeId: string;
+    /** 新父节点 */
+    newParentNode: TreeNode | null;
+    /** 新父节点标签 */
+    newParentLabel: string;
+    /** 新父节点键值 */
+    newParentKey: string | number | null;
+    /** 新索引 */
+    newIndex: number;
+    /** 新层级 */
+    newLevel: number;
+    /** 新路径 */
+    newPath: string;
+    /** 新完整路径数组 */
+    newFullPath: string[];
+    /** 新兄弟节点列表 */
+    newSiblings: TreeNode[];
+    /** 目标数据 */
+    targetData: TreeNode[];
+  };
+  /** 操作信息 */
+  operationInfo: {
+    /** 是否跨树拖拽 */
+    isCrossTree: boolean;
+    /** 操作时间戳 */
+    timestamp: number;
+    /** 操作类型 */
+    operationType: 'move' | 'copy';
+    /** 操作描述 */
+    description: string;
+  };
+  /** 接受操作回调 */
+  accept: () => void;
+  /** 拒绝操作回调 */
+  reject: () => void;
+}
+
+// 节点详细信息接口
+export interface NodeDetailedInfo {
+  /** 父节点 */
+  parentNode: TreeNode | null;
+  /** 父节点标签 */
+  parentLabel: string;
+  /** 父节点键值 */
+  parentKey: string | number | null;
+  /** 在兄弟节点中的索引 */
+  index: number;
+  /** 节点层级 */
+  level: number;
+  /** 节点路径 */
+  path: string;
+  /** 完整路径数组 */
+  fullPath: string[];
+  /** 兄弟节点列表 */
+  siblings: TreeNode[];
+  /** 源数据 */
+  sourceData: TreeNode[];
+}
+
+// 拖拽后位置信息接口
+export interface DropPositionInfo {
+  /** 目标树ID */
+  targetTreeId: string;
+  /** 新父节点 */
+  newParentNode: TreeNode | null;
+  /** 新父节点标签 */
+  newParentLabel: string;
+  /** 新父节点键值 */
+  newParentKey: string | number | null;
+  /** 新索引 */
+  newIndex: number;
+  /** 新层级 */
+  newLevel: number;
+  /** 新路径 */
+  newPath: string;
+  /** 新完整路径数组 */
+  newFullPath: string[];
+  /** 新兄弟节点列表 */
+  newSiblings: TreeNode[];
+  /** 目标数据 */
+  targetData: TreeNode[];
 }
 
 export interface TreeLazyLoadEvent {
@@ -317,6 +434,8 @@ export interface TreeProps {
   autoUpdate?: boolean;
   /** 是否自动处理跨树拖拽数据更新 */
   crossTreeAutoUpdate?: boolean;
+  /** 跨树数据提供者，用于在跨树拖拽自动更新模式下获取和更新其他树的数据 */
+  crossTreeDataProvider?: CrossTreeDataProvider;
   /** 是否显示加载状态 */
   loading?: boolean;
   /** 加载文本 */
@@ -497,6 +616,19 @@ export interface UseDragDropReturn {
   getDragIndicatorClass: (node: TreeNode) => string;
   resetDragState: () => void;
   setDragScope: (scope: string) => void;
+  
+  // 跨树拖拽状态管理
+  crossTreeDragState: {
+    isActive: ComputedRef<boolean>;
+    isDragging: ComputedRef<boolean>;
+    pendingOperations: ComputedRef<PendingOperation[]>;
+    addPendingOperation: (operation: PendingOperation) => void;
+    removePendingOperation: (operationId: string) => void;
+    clearAllPendingOperations: () => void;
+    getPendingOperationsForTree: (treeId: string) => PendingOperation[];
+    getCurrentDragInfo: () => any;
+    resetAllState: () => void;
+  };
 }
 
 export interface UseFocusReturn {
@@ -591,4 +723,21 @@ export interface UseThemeReturn {
   theme: Ref<'light' | 'dark'>;
   toggleTheme: () => void;
   isDark: ComputedRef<boolean>;
+}
+
+// 跨树数据提供者接口
+export interface CrossTreeDataProvider {
+  /**
+   * 获取指定树的数据
+   * @param treeId 树的ID
+   * @returns 树的数据数组
+   */
+  getTreeData: (treeId: string) => TreeNode[]
+  
+  /**
+   * 更新指定树的数据
+   * @param treeId 树的ID
+   * @param data 新的树数据
+   */
+  updateTreeData: (treeId: string, data: TreeNode[]) => void
 }

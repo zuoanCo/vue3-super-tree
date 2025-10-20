@@ -692,29 +692,70 @@ export function moveCrossTreeNode(
   dropNodeKey: string | number,
   position: TreeDropPosition
 ): { success: boolean; sourceNodes: TreeNode[]; targetNodes: TreeNode[] } {
-  console.log('🔧 跨树拖拽:', { dragNodeKey, dropNodeKey, position })
+  // 添加空值检查
+  if (!sourceNodes || !targetNodes) {
+    console.error('❌ 源树或目标树数据为空:', { sourceNodes, targetNodes })
+    return { success: false, sourceNodes: sourceNodes || [], targetNodes: targetNodes || [] }
+  }
+  
+  console.log('🔧 跨树拖拽开始:', { 
+    dragNodeKey, 
+    dropNodeKey, 
+    position,
+    sourceNodesCount: sourceNodes.length,
+    targetNodesCount: targetNodes.length
+  })
   
   try {
     // 从源树中移除节点
+    console.log('🔍 正在从源树中查找节点:', dragNodeKey)
     const removeResult = removeTreeNode(sourceNodes, dragNodeKey)
     
     if (!removeResult.removedNode) {
       console.error('❌ 无法从源树中找到要移动的节点:', dragNodeKey)
+      console.log('📋 源树中的所有节点:', sourceNodes.map(n => ({ key: n.key, label: n.label })))
       return { success: false, sourceNodes, targetNodes }
     }
+    
+    console.log('✅ 成功从源树中移除节点:', {
+      removedNode: { key: removeResult.removedNode.key, label: removeResult.removedNode.label },
+      remainingNodesCount: removeResult.nodes.length
+    })
     
     // 确定源树和目标树的前缀
     const sourceTreePrefix = dragNodeKey.toString().startsWith('tree1-') ? 'tree1-' : 'tree2-'
     const targetTreePrefix = dropNodeKey.toString().startsWith('tree1-') ? 'tree1-' : 'tree2-'
+    
+    console.log('🏷️ 树前缀分析:', { sourceTreePrefix, targetTreePrefix })
     
     // 如果是跨树移动，更新节点的 key
     let nodeToInsert = removeResult.removedNode
     if (sourceTreePrefix !== targetTreePrefix) {
       console.log('🔄 跨树移动，更新节点 key:', { sourceTreePrefix, targetTreePrefix })
       nodeToInsert = updateNodeKeysForCrossTree(removeResult.removedNode, sourceTreePrefix, targetTreePrefix)
+      console.log('🆔 节点 key 更新:', {
+        oldKey: removeResult.removedNode.key,
+        newKey: nodeToInsert.key
+      })
     }
     
     // 添加到目标树
+    console.log('🎯 正在将节点添加到目标树:', {
+      targetKey: dropNodeKey,
+      nodeToInsert: { key: nodeToInsert.key, label: nodeToInsert.label },
+      position
+    })
+    
+    // 首先检查目标节点是否存在
+    const targetNode = findTreeNode(targetNodes, dropNodeKey)
+    if (!targetNode) {
+      console.error('❌ 无法在目标树中找到目标节点:', dropNodeKey)
+      console.log('📋 目标树中的所有节点:', targetNodes.map(n => ({ key: n.key, label: n.label })))
+      return { success: false, sourceNodes, targetNodes }
+    }
+    
+    console.log('✅ 找到目标节点:', { key: targetNode.key, label: targetNode.label })
+    
     const updatedTargetNodes = addNodeToTree(targetNodes, dropNodeKey, nodeToInsert, position)
     
     // 验证插入结果
@@ -932,5 +973,167 @@ export function getCrossTreeSampleData(): { tree1: TreeNode[]; tree2: TreeNode[]
         ]
       }
     ]
+  }
+}
+
+/**
+ * 获取节点详细信息（从 TreeDemo.vue 移植）
+ * 包括索引、层级、路径、兄弟节点和父节点信息
+ */
+export function getNodeDetailedInfo(
+  nodes: TreeNode[], 
+  nodeKey: string | number, 
+  treeId: string
+): {
+  node: TreeNode | null;
+  parentNode: TreeNode | null;
+  parentLabel: string;
+  parentKey: string | number | null;
+  index: number;
+  level: number;
+  path: string;
+  fullPath: string[];
+  siblings: TreeNode[];
+  sourceData: TreeNode[];
+} | null {
+  function findNodeRecursive(
+    currentNodes: TreeNode[], 
+    targetKey: string | number, 
+    parent: TreeNode | null = null, 
+    currentLevel: number = 0,
+    currentPath: string[] = []
+  ): any {
+    // 添加空值检查
+    if (!currentNodes || !Array.isArray(currentNodes)) {
+      return null
+    }
+    
+    for (let i = 0; i < currentNodes.length; i++) {
+      const node = currentNodes[i]
+      const nodePath = [...currentPath, node.label]
+      
+      if (node.key === targetKey) {
+        return {
+          node,
+          parentNode: parent,
+          parentLabel: parent?.label || '根目录',
+          parentKey: parent?.key || null,
+          index: i,
+          level: currentLevel,
+          path: nodePath.join(' > '),
+          fullPath: nodePath,
+          siblings: currentNodes,
+          sourceData: nodes
+        }
+      }
+      
+      // 添加对 node.children 的空值检查
+      if (node.children && Array.isArray(node.children)) {
+        const found = findNodeRecursive(
+          node.children, 
+          targetKey, 
+          node, 
+          currentLevel + 1, 
+          nodePath
+        )
+        if (found) return found
+      }
+    }
+    return null
+  }
+  
+  // 添加对输入参数的空值检查
+  if (!nodes || !Array.isArray(nodes)) {
+    return null
+  }
+  
+  return findNodeRecursive(nodes, nodeKey)
+}
+
+/**
+ * 根据路径查找节点（从 TreeDemo.vue 移植）
+ */
+export function findNodeByPath(nodes: TreeNode[], path: string[]): TreeNode | null {
+  if (path.length === 0) return null
+  
+  let currentNodes = nodes
+  let currentNode: TreeNode | null = null
+  
+  for (const label of path) {
+    currentNode = currentNodes.find(node => node.label === label) || null
+    if (!currentNode) return null
+    
+    if (currentNode.children) {
+      currentNodes = currentNode.children
+    }
+  }
+  
+  return currentNode
+}
+
+/**
+ * 计算拖拽后的位置信息（从 TreeDemo.vue 移植）
+ */
+export function calculateDropInfo(
+  targetNodes: TreeNode[], 
+  dropNode: TreeNode, 
+  position: TreeDropPosition,
+  treeId: string
+): {
+  newParentNode: TreeNode | null;
+  newParentLabel: string;
+  newParentKey: string | number | null;
+  newIndex: number;
+  newLevel: number;
+  newPath: string;
+  newFullPath: string[];
+  targetData: TreeNode[];
+} | null {
+  // 获取目标节点的详细信息
+  const dropNodeInfo = getNodeDetailedInfo(targetNodes, dropNode.key, treeId)
+  if (!dropNodeInfo) return null
+  
+  let newParentNode: TreeNode | null = null
+  let newIndex = 0
+  let newLevel = 0
+  let newPath = ''
+  let newFullPath: string[] = []
+  
+  if (position === 'inside') {
+    // 放置在节点内部
+    newParentNode = dropNode
+    newIndex = dropNode.children?.length || 0
+    newLevel = dropNodeInfo.level + 1
+    newFullPath = [...dropNodeInfo.fullPath]
+    newPath = newFullPath.join(' > ')
+  } else {
+    // 放置在节点上方或下方
+    newParentNode = dropNodeInfo.parentNode
+    newLevel = dropNodeInfo.level
+    
+    if (position === 'above') {
+      newIndex = dropNodeInfo.index
+    } else { // below
+      newIndex = dropNodeInfo.index + 1
+    }
+    
+    if (newParentNode) {
+      const parentInfo = getNodeDetailedInfo(targetNodes, newParentNode.key, treeId)
+      newFullPath = parentInfo?.fullPath || []
+    } else {
+      newFullPath = []
+    }
+    newPath = newFullPath.join(' > ') || '根目录'
+  }
+  
+  return {
+    newParentNode,
+    newParentLabel: newParentNode?.label || '根目录',
+    newParentKey: newParentNode?.key || null,
+    newIndex,
+    newLevel,
+    newPath,
+    newFullPath,
+    targetData: targetNodes
   }
 }

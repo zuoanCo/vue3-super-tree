@@ -6,6 +6,8 @@ import AutoUpdateExample from '@/pages/AutoUpdateExample.vue'
 import CrossTreeAutoUpdateTest from '@/pages/CrossTreeAutoUpdateTest.vue'
 import SimpleAutoUpdateDemo from '@/pages/SimpleAutoUpdateDemo.vue'
 import QuickTest from '@/pages/QuickTest.vue'
+import CrossTreeDragDiagnosis from '@/pages/CrossTreeDragDiagnosis.vue'
+import CrossTreeDragDemo from '@/pages/CrossTreeDragDemo.vue'
 
 // 定义路由配置
 const routes = [
@@ -43,6 +45,16 @@ const routes = [
     path: '/quick-test',
     name: 'quick-test',
     component: QuickTest,
+  },
+  {
+    path: '/diagnosis',
+    name: 'diagnosis',
+    component: CrossTreeDragDiagnosis,
+  },
+  {
+    path: '/cross-tree-demo',
+    name: 'cross-tree-demo',
+    component: CrossTreeDragDemo,
   },
   {
     path: '/about',

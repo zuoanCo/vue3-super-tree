@@ -88,6 +88,51 @@
         </template>
       </TreeNode>
     </ul>
+
+    <!-- 待确认操作列表 -->
+    <div v-if="pendingOperations.length > 0" class="p-tree-pending-operations">
+      <div class="p-tree-pending-header">
+        <h4>待确认操作 ({{ pendingOperations.length }})</h4>
+        <button 
+          @click="clearAllPendingOperations"
+          class="p-tree-pending-clear-all"
+          title="清除所有待确认操作"
+        >
+          清除全部
+        </button>
+      </div>
+      <div class="p-tree-pending-list">
+        <div 
+          v-for="operation in pendingOperations" 
+          :key="operation.id"
+          class="p-tree-pending-item"
+        >
+          <div class="p-tree-pending-info">
+            <div class="p-tree-pending-description">{{ operation.description }}</div>
+            <div class="p-tree-pending-details">
+              <span class="p-tree-pending-time">{{ formatTime(operation.timestamp) }}</span>
+              <span v-if="operation.isCrossTree" class="p-tree-pending-cross-tree">跨树操作</span>
+            </div>
+          </div>
+          <div class="p-tree-pending-actions">
+            <button 
+              @click="acceptOperation(operation)"
+              class="p-tree-pending-accept"
+              title="接受此操作"
+            >
+              接受
+            </button>
+            <button 
+              @click="rejectOperation(operation)"
+              class="p-tree-pending-reject"
+              title="拒绝此操作"
+            >
+              拒绝
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -100,7 +145,7 @@ import { useDragDrop } from '../composables/useDragDrop'
 import { useSelection } from '../composables/useSelection'
 import { useFocus } from '../composables/useFocus'
 import { useFilter } from '../composables/useFilter'
-import { moveTreeNode } from '../lib/utils'
+import { moveTreeNode, moveCrossTreeNode, getNodeDetailedInfo, calculateDropInfo } from '../lib/utils'
 import type {
   TreeNode as TreeNodeType,
   TreeProps,
@@ -121,7 +166,8 @@ import type {
   CrossTreeDragLeaveEvent,
   CrossTreeDropEvent,
   CrossTreeDragEndEvent,
-  CrossTreeDragCancelEvent
+  CrossTreeDragCancelEvent,
+  PendingOperation
 } from '../lib/types'
 
 // Props
@@ -213,6 +259,7 @@ const emit = defineEmits<{
 // 响应式数据
 const filterValue = ref('')
 const dragOverNode = ref<TreeNodeType | null>(null)
+const pendingOperations = ref<PendingOperation[]>([])
 
 // Composables
 const {
@@ -566,7 +613,17 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
   // 设置接受拖拽的回调
   event.accept = () => {
     if (event.isCrossTree) {
-      // 跨树拖拽：触发 cross-tree-drop 事件，让父组件处理数据更新
+      // 跨树拖拽处理
+      console.log('🔄 跨树拖拽处理:', {
+        crossTreeAutoUpdate: props.crossTreeAutoUpdate,
+        sourceTreeId: event.sourceTreeId,
+        targetTreeId: event.targetTreeId,
+        dragNodeKey: event.dragNode.key,
+        dropNodeKey: event.dropNode.key,
+        dropPosition: event.dropPosition
+      })
+      
+      // 创建跨树拖拽事件对象
       const crossTreeDropEvent: CrossTreeDropEvent = {
         originalEvent: event.originalEvent,
         dragNode: event.dragNode,
@@ -578,19 +635,85 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
         isCrossTree: true,
         timestamp: Date.now(),
         accept: () => {
+          console.log('✅ 跨树拖拽被接受')
           // 清理拖拽状态
           onDrop(event.originalEvent, event.dropNode)
           resetDragState()
         },
         reject: () => {
+          console.log('❌ 跨树拖拽被拒绝')
           // 拒绝拖拽：直接清理状态，不更新数据
           onDrop(event.originalEvent, event.dropNode)
           resetDragState()
         }
       }
       
-      // 触发跨树拖拽事件，让父组件处理
+      // 触发跨树拖拽事件，让父组件处理数据更新
       emit('cross-tree-drop', crossTreeDropEvent)
+      
+      // 在自动更新模式下，立即调用 accept 回调
+      if (props.crossTreeAutoUpdate) {
+        console.log('🔄 跨树自动更新模式，开始处理数据更新')
+        
+        // 检查是否提供了跨树数据提供者
+        if (props.crossTreeDataProvider) {
+          try {
+            // 获取源树和目标树的数据
+            const sourceTreeData = props.crossTreeDataProvider.getTreeData(event.sourceTreeId || '') || []
+            const targetTreeData = props.crossTreeDataProvider.getTreeData(event.targetTreeId || '') || []
+            
+            console.log('🔄 获取到源树和目标树数据:', {
+              sourceTreeId: event.sourceTreeId,
+              targetTreeId: event.targetTreeId,
+              sourceDataLength: sourceTreeData.length,
+              targetDataLength: targetTreeData.length
+            })
+            
+            // 使用 moveCrossTreeNode 处理跨树数据移动
+            const result = moveCrossTreeNode(
+              sourceTreeData,
+              targetTreeData,
+              event.dragNode.key,
+              event.dropNode.key,
+              event.dropPosition
+            )
+            
+            if (result.success) {
+              // 更新源树和目标树的数据
+              props.crossTreeDataProvider.updateTreeData(event.sourceTreeId || '', result.sourceNodes)
+              props.crossTreeDataProvider.updateTreeData(event.targetTreeId || '', result.targetNodes)
+              
+              console.log('✅ 跨树拖拽数据更新成功')
+              
+              // 调用 accept 完成拖拽
+              nextTick(() => {
+                crossTreeDropEvent.accept()
+              })
+            } else {
+              console.error('❌ 跨树拖拽数据更新失败')
+              // 调用 reject 取消拖拽
+              crossTreeDropEvent.reject()
+            }
+          } catch (error) {
+            console.error('❌ 跨树拖拽数据更新异常:', error)
+            // 调用 reject 取消拖拽
+            crossTreeDropEvent.reject()
+          }
+        } else {
+          console.log('⚠️ 跨树自动更新模式但未提供 crossTreeDataProvider，回退到事件模式')
+          // 触发跨树拖拽事件，让父组件处理数据更新
+          emit('cross-tree-drop', crossTreeDropEvent)
+          
+          // 使用 nextTick 确保事件处理完成后再调用 accept
+          nextTick(() => {
+            crossTreeDropEvent.accept()
+          })
+        }
+      } else {
+        // 非自动更新模式：触发事件并添加到待确认操作列表
+        emit('cross-tree-drop', crossTreeDropEvent)
+        addToPendingOperations(crossTreeDropEvent)
+      }
     } else {
       // 同树拖拽：自动更新模式处理数据更新
       if (props.autoUpdate) {
@@ -622,9 +745,8 @@ const handleNodeDrop = (event: TreeNodeDropEvent) => {
           resetDragState()
         }
       } else {
-        // 非自动更新模式：直接清理状态
-        onDrop(event.originalEvent, event.dropNode)
-        resetDragState()
+        // 非自动更新模式：添加到待确认操作列表
+        addToPendingOperations(event)
       }
     }
   }
@@ -1013,6 +1135,246 @@ const getExpandedNodes = () => {
   return expandedNodes.value
 }
 
+// PendingOperations 相关函数
+const addToPendingOperations = (event: TreeNodeDropEvent | CrossTreeDropEvent) => {
+  const operation: PendingOperation = {
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: Date.now(),
+    operationType: event.isCrossTree ? 'cross-tree-move' : 'move',
+    isCrossTree: event.isCrossTree || false,
+    description: generateOperationDescription(event),
+    
+    // 拖拽前信息
+    beforeDrag: {
+      sourceTreeId: event.sourceTreeId || props.id || '',
+      parentNode: getNodeDetailedInfo(findParentNode(props.value || [], event.dragNode)),
+      index: findNodeIndex(props.value || [], event.dragNode),
+      path: findNodePath(props.value || [], event.dragNode.key),
+      node: getNodeDetailedInfo(event.dragNode)
+    },
+    
+    // 拖拽后信息
+    afterDrop: {
+      targetTreeId: event.targetTreeId || props.id || '',
+      parentNode: getNodeDetailedInfo(event.dropPosition === 'inside' ? event.dropNode : findParentNode(props.value || [], event.dropNode)),
+      index: calculateDropIndex(event),
+      path: calculateDropPath(event),
+      position: {
+        dropPosition: event.dropPosition,
+        dropIndex: event.dropIndex || 0,
+        relativeTo: getNodeDetailedInfo(event.dropNode)
+      }
+    },
+    
+    // 操作回调
+    accept: () => {
+      console.log('✅ 接受待确认操作:', operation.description)
+      
+      try {
+        if (event.isCrossTree) {
+          // 跨树拖拽处理
+          performCrossTreeMove(event as CrossTreeDropEvent)
+        } else {
+          // 同树拖拽处理
+          performSameTreeMove(event as TreeNodeDropEvent)
+        }
+        
+        // 从待确认列表中移除
+        removePendingOperation(operation.id)
+        
+        // 清理拖拽状态
+        onDrop(event.originalEvent, event.dropNode)
+        resetDragState()
+        
+        console.log('✅ 操作执行成功')
+      } catch (error) {
+        console.error('❌ 操作执行失败:', error)
+        
+        // 即使失败也要清理状态
+        removePendingOperation(operation.id)
+        onDrop(event.originalEvent, event.dropNode)
+        resetDragState()
+      }
+    },
+    
+    reject: () => {
+      console.log('❌ 拒绝待确认操作:', operation.description)
+      
+      // 从待确认列表中移除
+      removePendingOperation(operation.id)
+      
+      // 清理拖拽状态
+      onDrop(event.originalEvent, event.dropNode)
+      resetDragState()
+    }
+  }
+  
+  pendingOperations.value.push(operation)
+  console.log('📝 添加待确认操作:', operation.description)
+}
+
+const removePendingOperation = (operationId: string) => {
+  const index = pendingOperations.value.findIndex(op => op.id === operationId)
+  if (index !== -1) {
+    pendingOperations.value.splice(index, 1)
+  }
+}
+
+const acceptOperation = (operation: PendingOperation) => {
+  operation.accept()
+}
+
+const rejectOperation = (operation: PendingOperation) => {
+  operation.reject()
+}
+
+const clearAllPendingOperations = () => {
+  // 拒绝所有待确认操作
+  pendingOperations.value.forEach(operation => {
+    operation.reject()
+  })
+  pendingOperations.value = []
+  console.log('🧹 清除所有待确认操作')
+}
+
+const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEvent): string => {
+  const dragLabel = event.dragNode.label || event.dragNode.key
+  const dropLabel = event.dropNode.label || event.dropNode.key
+  
+  if (event.isCrossTree) {
+    const sourceTreeId = event.sourceTreeId || '未知源树'
+    const targetTreeId = event.targetTreeId || '未知目标树'
+    
+    switch (event.dropPosition) {
+      case 'before':
+        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之前`
+      case 'after':
+        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 之后`
+      case 'inside':
+        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId} 中 "${dropLabel}" 内部`
+      default:
+        return `将 "${dragLabel}" 从 ${sourceTreeId} 移动到 ${targetTreeId}`
+    }
+  } else {
+    switch (event.dropPosition) {
+      case 'before':
+        return `将 "${dragLabel}" 移动到 "${dropLabel}" 之前`
+      case 'after':
+        return `将 "${dragLabel}" 移动到 "${dropLabel}" 之后`
+      case 'inside':
+        return `将 "${dragLabel}" 移动到 "${dropLabel}" 内部`
+      default:
+        return `移动 "${dragLabel}"`
+    }
+  }
+}
+
+const performCrossTreeMove = (event: CrossTreeDropEvent) => {
+  // 触发跨树拖拽事件，让父组件处理数据更新
+  emit('cross-tree-drop', event)
+}
+
+const performSameTreeMove = (event: TreeNodeDropEvent) => {
+  // 使用 moveTreeNode 更新数据
+  const updatedData = moveTreeNode(
+    props.value,
+    event.dragNode.key,
+    event.dropNode.key,
+    event.dropPosition
+  )
+  
+  // 触发 update:value 事件更新父组件数据
+  emit('update:value', updatedData)
+}
+
+const findParentNode = (nodes: TreeNodeType[], targetNode: TreeNodeType): TreeNodeType | null => {
+  for (const node of nodes) {
+    if (node.children) {
+      // 检查是否是直接子节点
+      if (node.children.some(child => child.key === targetNode.key)) {
+        return node
+      }
+      
+      // 递归查找
+      const parent = findParentNode(node.children, targetNode)
+      if (parent) {
+        return parent
+      }
+    }
+  }
+  return null
+}
+
+const findNodeIndex = (nodes: TreeNodeType[], targetNode: TreeNodeType): number => {
+  return nodes.findIndex(node => node.key === targetNode.key)
+}
+
+const findNodePath = (nodes: TreeNodeType[], nodeKey: string | number): string[] => {
+  const path: string[] = []
+  
+  const findPath = (currentNodes: TreeNodeType[], currentPath: string[]): boolean => {
+    for (let i = 0; i < currentNodes.length; i++) {
+      const node = currentNodes[i]
+      const newPath = [...currentPath, node.label || String(node.key)]
+      
+      if (node.key === nodeKey) {
+        path.push(...newPath)
+        return true
+      }
+      
+      if (node.children && findPath(node.children, newPath)) {
+        return true
+      }
+    }
+    return false
+  }
+  
+  findPath(nodes, [])
+  return path
+}
+
+const calculateDropIndex = (event: TreeNodeDropEvent | CrossTreeDropEvent): number => {
+  if (event.dropIndex !== undefined) {
+    return event.dropIndex
+  }
+  
+  // 根据 dropPosition 计算索引
+  if (event.dropPosition === 'inside') {
+    return event.dropNode.children ? event.dropNode.children.length : 0
+  }
+  
+  // 对于 before/after，需要找到 dropNode 在其父节点中的索引
+  const parentNode = findParentNode(props.value || [], event.dropNode)
+  if (parentNode && parentNode.children) {
+    const dropNodeIndex = parentNode.children.findIndex(child => child.key === event.dropNode.key)
+    return event.dropPosition === 'after' ? dropNodeIndex + 1 : dropNodeIndex
+  }
+  
+  return 0
+}
+
+const calculateDropPath = (event: TreeNodeDropEvent | CrossTreeDropEvent): string[] => {
+  if (event.dropPosition === 'inside') {
+    return [...findNodePath(props.value || [], event.dropNode.key), event.dragNode.label || String(event.dragNode.key)]
+  }
+  
+  const parentNode = findParentNode(props.value || [], event.dropNode)
+  if (parentNode) {
+    return [...findNodePath(props.value || [], parentNode.key), event.dragNode.label || String(event.dragNode.key)]
+  }
+  
+  return [event.dragNode.label || String(event.dragNode.key)]
+}
+
+const formatTime = (timestamp: number): string => {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('zh-CN', { 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  })
+}
+
 const scrollToNode = (nodeKey: string) => {
   nextTick(() => {
     const element = document.querySelector(`[data-node-key="${nodeKey}"]`)
@@ -1114,7 +1476,12 @@ defineExpose({
   getCurrentFocusedNodeKey,
   emitNodeDragFrom,
   emitNodeDragTo,
-  resetDragState
+  resetDragState,
+  // PendingOperations 相关方法
+  getPendingOperations: () => pendingOperations.value,
+  acceptOperation,
+  rejectOperation,
+  clearAllPendingOperations
 })
 
 // 生命周期
@@ -1165,5 +1532,127 @@ onMounted(() => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* 待确认操作样式 */
+.p-tree-pending-operations {
+  margin-top: 1rem;
+  border: 1px solid var(--p-tree-border-color, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--p-tree-background-color, #ffffff);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.p-tree-pending-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--p-tree-border-color, #e5e7eb);
+  background: var(--p-tree-header-background-color, #f9fafb);
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.p-tree-pending-header h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--p-tree-text-color, #374151);
+}
+
+.p-tree-pending-clear-all {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--p-tree-danger-color, #dc2626);
+  background: transparent;
+  border: 1px solid var(--p-tree-danger-color, #dc2626);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.p-tree-pending-clear-all:hover {
+  background: var(--p-tree-danger-color, #dc2626);
+  color: white;
+}
+
+.p-tree-pending-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.p-tree-pending-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--p-tree-border-color, #e5e7eb);
+}
+
+.p-tree-pending-item:last-child {
+  border-bottom: none;
+}
+
+.p-tree-pending-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.p-tree-pending-description {
+  font-size: 0.875rem;
+  color: var(--p-tree-text-color, #374151);
+  margin-bottom: 0.25rem;
+}
+
+.p-tree-pending-details {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.p-tree-pending-time {
+  font-size: 0.75rem;
+  color: var(--p-tree-muted-color, #6b7280);
+}
+
+.p-tree-pending-cross-tree {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  background: var(--p-tree-primary-color, #3b82f6);
+  color: white;
+  border-radius: 0.25rem;
+}
+
+.p-tree-pending-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.p-tree-pending-accept,
+.p-tree-pending-reject {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.p-tree-pending-accept {
+  background: var(--p-tree-success-color, #10b981);
+  color: white;
+}
+
+.p-tree-pending-accept:hover {
+  background: var(--p-tree-success-hover-color, #059669);
+}
+
+.p-tree-pending-reject {
+  background: var(--p-tree-danger-color, #dc2626);
+  color: white;
+}
+
+.p-tree-pending-reject:hover {
+  background: var(--p-tree-danger-hover-color, #b91c1c);
 }
 </style>
