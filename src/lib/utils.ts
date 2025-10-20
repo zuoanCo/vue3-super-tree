@@ -49,10 +49,10 @@ export function mergeTreeConfig(userConfig?: Partial<TreeConfig>): TreeConfig {
  */
 export function replaceTextTemplate(
   template: string, 
-  replacer: TextTemplateReplacer
+  variables: Record<string, string | number>
 ): string {
   return template.replace(/\{(\w+)\}/g, (match, key) => {
-    return replacer[key] !== undefined ? String(replacer[key]) : match
+    return variables[key] !== undefined ? String(variables[key]) : match
   })
 }
 

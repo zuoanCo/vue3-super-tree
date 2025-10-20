@@ -322,7 +322,7 @@ const onCrossTreeDrop = (event: any) => {
         console.warn('⚠️ 事件对象没有accept方法')
       }
     } else {
-      addEventLog('error', `跨树拖拽失败: 数据更新失败 - ${result.error || '未知原因'}`)
+      addEventLog('error', `跨树拖拽失败: 数据更新失败 - 未知原因`)
       console.error('❌ 跨树拖拽数据更新失败:', result)
       
       // 拒绝拖拽

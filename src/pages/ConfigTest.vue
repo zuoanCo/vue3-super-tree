@@ -69,14 +69,14 @@ const testData = ref<TreeNode[]>([
 const customI18nConfig = ref<TreeConfig>({
   i18n: {
     loading: 'Custom Loading...',
-    noData: 'Custom No Data',
-    searchPlaceholder: 'Custom Search...',
+    noDataFound: 'Custom No Data',
+    filterPlaceholder: 'Custom Search...',
     expand: 'Custom Expand',
     collapse: 'Custom Collapse',
-    dragToMove: 'Custom Move {source} to {target}',
-    dragToBefore: 'Custom Before',
-    dragToAfter: 'Custom After',
-    dragToInside: 'Custom Inside',
+    move: 'Custom Move {dragLabel}',
+    moveBefore: 'Custom Move {dragLabel} before {dropLabel}',
+    moveAfter: 'Custom Move {dragLabel} after {dropLabel}',
+    moveInside: 'Custom Move {dragLabel} inside {dropLabel}',
     crossTreeOperation: 'Custom Cross Tree Operation'
   }
 })

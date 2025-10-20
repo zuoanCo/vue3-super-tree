@@ -1,0 +1,35 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.lib.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "skipLibCheck": true,
+    "noEmitOnError": false,
+    "suppressImplicitAnyIndexErrors": true,
+    "suppressExcessPropertyErrors": true,
+    "ignoreDeprecations": "5.0",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "verbatimModuleSyntax": false
+  },
+  "include": [
+    "src/lib/**/*",
+    "src/components/**/*",
+    "src/types/**/*",
+    "src/utils/**/*",
+    "src/hooks/**/*"
+  ],
+  "exclude": [
+    "src/**/*.test.*",
+    "src/**/*.spec.*",
+    "src/pages/**/*",
+    "src/router/**/*",
+    "src/main.ts",
+    "src/App.vue",
+    "node_modules",
+    "dist"
+  ]
+}

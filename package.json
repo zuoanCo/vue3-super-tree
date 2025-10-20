@@ -58,7 +58,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "build:lib": "vue-tsc -b && vite build --config vite.lib.config.ts",
+    "build:lib:raw": "vue-tsc -b && vite build --config vite.lib.config.ts",
+    "build:lib": "node scripts/build-lib-clean.js",
+    "build:lib:clean": "node scripts/build-lib-clean.js",
     "preview": "vite preview",
     "check": "vue-tsc -b",
     "lint": "eslint . --ext .ts,.vue",

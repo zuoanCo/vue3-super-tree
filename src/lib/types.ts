@@ -840,6 +840,13 @@ export interface TreeI18nConfig {
   noDataFound?: string;
   expand?: string;
   collapse?: string;
+  rootLabel?: string;
+  unknownSourceTree?: string;
+  unknownTargetTree?: string;
+  filterPlaceholder?: string;
+  loadingText?: string;
+  dropToEmptyTree?: string;
+  emptyMessage?: string;
   
   // 拖拽相关文本
   dragMessages?: {
@@ -854,6 +861,16 @@ export interface TreeI18nConfig {
     releaseToAddToEmptyTree?: string; // "释放以添加到空树"
   };
   
+  // 直接拖拽文本属性（用于向后兼容）
+  crossTreeMoveBefore?: string;
+  crossTreeMoveAfter?: string;
+  crossTreeMoveInside?: string;
+  crossTreeMove?: string;
+  moveBefore?: string;
+  moveAfter?: string;
+  moveInside?: string;
+  move?: string;
+  
   // 待确认操作相关文本
   pendingOperations?: {
     title?: string; // "待确认操作"
@@ -862,6 +879,15 @@ export interface TreeI18nConfig {
     reject?: string; // "拒绝此操作"
     crossTreeOperation?: string; // "跨树操作"
   };
+  
+  // 直接待确认操作属性（用于向后兼容）
+  pendingOperationsTitle?: string;
+  clearAllOperations?: string;
+  acceptOperation?: string;
+  accept?: string;
+  rejectOperation?: string;
+  reject?: string;
+  crossTreeOperation?: string;
   
   // 可访问性文本
   accessibility?: {
@@ -889,6 +915,12 @@ export interface TreeStyleConfig {
     iconColor?: string;
     loadingColor?: string;
   };
+  
+  // 直接样式属性（用于向后兼容）
+  focusBackgroundColor?: string;
+  focusTextColor?: string;
+  selectedBackgroundColor?: string;
+  selectedTextColor?: string;
   
   // 尺寸配置
   dimensions?: {
@@ -979,6 +1011,13 @@ export const DEFAULT_I18N_CONFIG: Required<TreeI18nConfig> = {
   noDataFound: 'No data found',
   expand: 'Expand',
   collapse: 'Collapse',
+  rootLabel: '根节点',
+  unknownSourceTree: '未知源树',
+  unknownTargetTree: '未知目标树',
+  filterPlaceholder: '搜索...',
+  loadingText: '加载中...',
+  dropToEmptyTree: '拖拽到空树',
+  emptyMessage: '暂无数据',
   dragMessages: {
     moveToAbove: '将 {dragLabel} 移动到 {dropLabel} 之前',
     moveToBelow: '将 {dragLabel} 移动到 {dropLabel} 之后',
@@ -990,6 +1029,14 @@ export const DEFAULT_I18N_CONFIG: Required<TreeI18nConfig> = {
     crossTreeMoveToInside: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 内部',
     releaseToAddToEmptyTree: '释放以添加到空树',
   },
+  crossTreeMoveBefore: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之前',
+  crossTreeMoveAfter: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 之后',
+  crossTreeMoveInside: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId} 中 {dropLabel} 内部',
+  crossTreeMove: '将 {dragLabel} 从 {sourceTreeId} 移动到 {targetTreeId}',
+  moveBefore: '将 {dragLabel} 移动到 {dropLabel} 之前',
+  moveAfter: '将 {dragLabel} 移动到 {dropLabel} 之后',
+  moveInside: '将 {dragLabel} 移动到 {dropLabel} 内部',
+  move: '移动 {dragLabel}',
   pendingOperations: {
     title: '待确认操作',
     clearAll: '清除所有待确认操作',
@@ -997,6 +1044,13 @@ export const DEFAULT_I18N_CONFIG: Required<TreeI18nConfig> = {
     reject: '拒绝此操作',
     crossTreeOperation: '跨树操作',
   },
+  pendingOperationsTitle: '待确认操作',
+  clearAllOperations: '清除所有待确认操作',
+  acceptOperation: '接受此操作',
+  accept: '接受',
+  rejectOperation: '拒绝此操作',
+  reject: '拒绝',
+  crossTreeOperation: '跨树操作',
   accessibility: {
     treeLabel: 'Tree',
     nodeSelected: '节点已选中',
@@ -1021,6 +1075,10 @@ export const DEFAULT_STYLE_CONFIG: Required<TreeStyleConfig> = {
     iconColor: '#666666',
     loadingColor: '#1976d2',
   },
+  focusBackgroundColor: '#1e40af',
+  focusTextColor: 'white',
+  selectedBackgroundColor: '#e3f2fd',
+  selectedTextColor: '#1565c0',
   dimensions: {
     nodeHeight: 32,
     indent: 16,
@@ -1085,5 +1143,10 @@ export const DEFAULT_TREE_CONFIG: Required<TreeConfig> = {
  */
 export type TextTemplateReplacer = (
   template: string,
-  variables: Record<string, string | number>
+  variables: Record<string, string | number> & {
+    dragLabel?: string | number;
+    dropLabel?: string | number;
+    sourceTreeId?: string | number;
+    targetTreeId?: string | number;
+  }
 ) => string;
