@@ -18,6 +18,7 @@
   "include": [
     "src/lib/**/*",
     "src/components/**/*",
+    "src/composables/**/*",
     "src/types/**/*",
     "src/utils/**/*",
     "src/hooks/**/*"

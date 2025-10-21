@@ -90,9 +90,7 @@ export { useSelection } from '../composables/useSelection'
 export { useFilter } from '../composables/useFilter'
 export { useFocus } from '../composables/useFocus'
 export { useTheme } from '../composables/useTheme'
-
-// 导出 Composables 索引
-export * from '../composables/index'
+export { useCrossTreeManager } from '../composables/useCrossTreeManager'
 
 // 导出主题 - 完整导出所有主题相关的类和工具
 export * from './themes'

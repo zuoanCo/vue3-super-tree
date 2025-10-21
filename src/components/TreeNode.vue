@@ -426,17 +426,18 @@ const handleCheckboxClick = (event: Event) => {
 
 // 拖拽事件
 const handleDragStart = (event: DragEvent) => {
-  console.log('🚀🚀🚀 TreeNode handleDragStart called:', props.node.key, props.node.label)
-  console.log('🚀 isDraggable:', isDraggable.value)
-  console.log('🚀 props.draggableNodes:', props.draggableNodes)
-  console.log('🚀 props.node.draggable:', props.node.draggable)
+  console.log('🚀 TreeNode handleDragStart called for node:', props.node.key, props.node.label)
   console.log('🚀 event.target:', event.target)
+  console.log('🚀 event.currentTarget:', event.currentTarget)
   console.log('🚀 event.target draggable attribute:', (event.target as HTMLElement)?.getAttribute('draggable'))
   console.log('🚀 contentRef.value:', contentRef.value)
   console.log('🚀 contentRef.value draggable:', contentRef.value?.getAttribute('draggable'))
   console.log('🚀 tree object:', tree)
   console.log('🚀 tree.onDragStart available:', !!tree.onDragStart)
   console.log('🚀 event:', event)
+  console.log('🚀 isDraggable.value:', isDraggable.value)
+  console.log('🚀 props.draggableNodes:', props.draggableNodes)
+  console.log('🚀 props.node.draggable:', props.node.draggable)
   
   if (!isDraggable.value) {
     console.log('❌ Node is not draggable, preventing default')
@@ -454,6 +455,7 @@ const handleDragStart = (event: DragEvent) => {
   
   // 发出拖拽开始事件
   emit('node-drag-start', { originalEvent: event, node: props.node })
+  console.log('✅ Emitted node-drag-start event')
 }
 
 const handleDragEnd = (event: DragEvent) => {
@@ -603,26 +605,24 @@ onMounted(() => {
     }
   })
 
-  // 原有的跨树节点调试逻辑
-  if (props.node.key.toString().startsWith('tree1-') || props.node.key.toString().startsWith('tree2-')) {
-    console.log(`🔍 Cross-tree node: ${props.node.key} ${props.node.label} | isDraggable: ${isDraggable.value} | draggableNodes: ${props.draggableNodes} | node.draggable: ${props.node.draggable}`)
-    
-    // 获取节点的 DOM 元素
-    setTimeout(() => {
-      const nodeElement = document.querySelector(`[data-node-key="${props.node.key}"]`)
-      if (nodeElement) {
-        const contentElement = nodeElement.querySelector('.p-tree-node-content')
-        console.log(`🔍 DOM element for ${props.node.key}:`, {
-          nodeElement,
-          contentElement,
-          draggable: contentElement?.getAttribute('draggable'),
-          hasContentElement: !!contentElement
-        })
-      } else {
-        console.log(`❌ No DOM element found for ${props.node.key}`)
-      }
-    }, 500)
-  }
+  // 调试所有节点的 isDraggable 状态
+  console.log(`🔍 Node mounted: ${props.node.key} ${props.node.label} | isDraggable: ${isDraggable.value} | draggableNodes: ${props.draggableNodes} | node.draggable: ${props.node.draggable}`)
+  
+  // 获取节点的 DOM 元素
+  setTimeout(() => {
+    const nodeElement = document.querySelector(`[data-node-key="${props.node.key}"]`)
+    if (nodeElement) {
+      const contentElement = nodeElement.querySelector('.p-tree-node-content')
+      console.log(`🔍 DOM element for ${props.node.key}:`, {
+        nodeElement,
+        contentElement,
+        draggable: contentElement?.getAttribute('draggable'),
+        hasContentElement: !!contentElement
+      })
+    } else {
+      console.log(`❌ No DOM element found for ${props.node.key}`)
+    }
+  }, 500)
 })
 </script>
 

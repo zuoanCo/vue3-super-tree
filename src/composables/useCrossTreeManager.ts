@@ -303,6 +303,3 @@ export function useCrossTreeManager() {
     setCrossTreeDragData
   }
 }
-
-// 导出单例实例
-export const crossTreeManager = useCrossTreeManager()

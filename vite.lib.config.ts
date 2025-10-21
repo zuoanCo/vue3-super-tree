@@ -32,10 +32,15 @@ export default defineConfig({
       },
       beforeWriteFile: (filePath, content) => {
         // 过滤掉 Vue SFC 相关的类型错误和警告
-        return content
+        let cleanContent = content
           .replace(/\/\*\* @vue\/shared \*\*\//g, '')
           .replace(/\/\/ @ts-ignore.*\n/g, '')
           .replace(/\/\* eslint-disable.*\*\//g, '');
+        
+        // 移除错误的相对路径导入
+        cleanContent = cleanContent.replace(/import\s*\{\s*useCrossTreeManager\s*\}\s*from\s*['"]\.\.\/composables\/useCrossTreeManager['"];?\s*\n?/g, '');
+        
+        return cleanContent;
       },
       afterBuild: () => {
         console.log('✓ Type definitions generated successfully - Vue SFC errors suppressed');

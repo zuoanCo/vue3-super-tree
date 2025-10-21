@@ -10,6 +10,7 @@ import QuickTest from '@/pages/QuickTest.vue'
 import CrossTreeDragDiagnosis from '@/pages/CrossTreeDragDiagnosis.vue'
 import CrossTreeDragDemo from '@/pages/CrossTreeDragDemo.vue'
 import ConfigTest from '@/pages/ConfigTest.vue'
+import DragTestPage from '@/pages/DragTestPage.vue'
 
 // 定义路由配置
 const routes = [
@@ -67,6 +68,11 @@ const routes = [
     path: '/config-test',
     name: 'config-test',
     component: ConfigTest,
+  },
+  {
+    path: '/drag-test',
+    name: 'drag-test',
+    component: DragTestPage,
   },
   {
     path: '/about',

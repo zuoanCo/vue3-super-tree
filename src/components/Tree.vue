@@ -146,7 +146,7 @@ import { useDragDrop } from '../composables/useDragDrop'
 import { useSelection } from '../composables/useSelection'
 import { useFocus } from '../composables/useFocus'
 import { useFilter } from '../composables/useFilter'
-import { crossTreeManager } from '../composables/useCrossTreeManager'
+import { useCrossTreeManager } from '../composables/useCrossTreeManager'
 import { moveTreeNode, moveCrossTreeNode, getNodeDetailedInfo, calculateDropInfo, mergeTreeConfig, replaceTextTemplate } from '../lib/utils'
 import type {
   TreeNode as TreeNodeType,
@@ -273,6 +273,9 @@ const emit = defineEmits<{
 
 // 配置合并
 const mergedConfig = computed(() => mergeTreeConfig(props.config))
+
+// 跨树拖拽管理器
+const crossTreeManager = useCrossTreeManager()
 
 // 响应式数据
 const filterValue = ref('')
