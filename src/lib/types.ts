@@ -446,6 +446,8 @@ export interface TreeProps {
   crossTreeAutoUpdate?: boolean;
   /** 跨树数据提供者，用于在跨树拖拽自动更新模式下获取和更新其他树的数据 */
   crossTreeDataProvider?: CrossTreeDataProvider;
+  /** 跨树拖拽组名，相同组名的树可以互相拖拽 */
+  crossTreeGroup?: string;
   /** 是否显示加载状态 */
   loading?: boolean;
   /** 加载文本 */
@@ -544,6 +546,28 @@ export interface TreeEmits {
   'cross-tree-drag-end': [event: CrossTreeDragEndEvent];
   /** 跨树拖拽取消事件 */
   'cross-tree-drag-cancel': [event: CrossTreeDragCancelEvent];
+  
+  /** 简化的跨树拖拽移动事件 */
+  'cross-tree-move': [event: {
+    /** 被移动的节点 */
+    dragNode: TreeNode;
+    /** 目标节点 */
+    dropNode: TreeNode;
+    /** 放置位置 */
+    dropPosition: TreeDropPosition;
+    /** 源树ID */
+    sourceTreeId: string;
+    /** 目标树ID */
+    targetTreeId: string;
+    /** 源树数据（移动前） */
+    sourceData: TreeNode[];
+    /** 目标树数据（移动前） */
+    targetData: TreeNode[];
+    /** 更新后的源树数据 */
+    newSourceData: TreeNode[];
+    /** 更新后的目标树数据 */
+    newTargetData: TreeNode[];
+  }];
   
   /** 选择状态更新 */
   'update:selectionKeys': [value: TreeSelectionKeys];

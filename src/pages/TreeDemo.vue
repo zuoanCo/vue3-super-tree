@@ -741,25 +741,11 @@
               :value="crossTreeData1"
               selection-mode="single"
               :dragdrop="true"
-              :crossTreeAutoUpdate="false"
-              dragdrop-scope="cross-tree"
+              cross-tree-group="demo-group"
               :expanded-keys="crossTreeExpandedKeys1"
               class="demo-tree cross-tree"
-              @node-drop="onCrossTreeDrop"
-              @node-drag-start="onDragStart"
-              @node-drag-end="onDragEnd"
-              @node-drag-from="onSourceTreeDragFrom"
-              @cross-tree-drag-start="onCrossTreeDragStart"
-              @cross-tree-drag-enter="onCrossTreeDragEnter"
-              @cross-tree-drag-over="onCrossTreeDragOver"
-              @cross-tree-drag-leave="onCrossTreeDragLeave"
-              @cross-tree-drop="onCrossTreeDropEvent"
-              @cross-tree-drag-end="onCrossTreeDragEnd"
-              @cross-tree-drag-cancel="onCrossTreeDragCancel"
-              @hover-change="(hoverInfo) => {
-                console.log('🎯 Tree1 hover-change:', hoverInfo)
-                currentHoverInfo = hoverInfo
-              }"
+              @cross-tree-move="onCrossTreeMove"
+              @update:value="crossTreeData1 = $event"
               @update:expanded-keys="crossTreeExpandedKeys1 = $event"
             />
             <div class="tree-info">
@@ -778,25 +764,11 @@
               :value="crossTreeData2"
               selection-mode="single"
               :dragdrop="true"
-              :crossTreeAutoUpdate="false"
-              dragdrop-scope="cross-tree"
+              cross-tree-group="demo-group"
               :expanded-keys="crossTreeExpandedKeys2"
               class="demo-tree cross-tree"
-              @node-drop="onCrossTreeDrop"
-              @node-drag-start="onDragStart"
-              @node-drag-end="onDragEnd"
-              @node-drag-to="onTargetTreeDragTo"
-              @cross-tree-drag-start="onCrossTreeDragStart"
-              @cross-tree-drag-enter="onCrossTreeDragEnter"
-              @cross-tree-drag-over="onCrossTreeDragOver"
-              @cross-tree-drag-leave="onCrossTreeDragLeave"
-              @cross-tree-drop="onCrossTreeDropEvent"
-              @cross-tree-drag-end="onCrossTreeDragEnd"
-              @cross-tree-drag-cancel="onCrossTreeDragCancel"
-              @hover-change="(hoverInfo) => {
-                console.log('🎯 Tree2 hover-change:', hoverInfo)
-                currentHoverInfo = hoverInfo
-              }"
+              @cross-tree-move="onCrossTreeMove"
+              @update:value="crossTreeData2 = $event"
               @update:expanded-keys="crossTreeExpandedKeys2 = $event"
             />
             <div class="tree-info">
@@ -1055,146 +1027,89 @@
       </div>
 
       <!-- 跨树拖拽自动更新演示 -->
+      <!-- 简化的跨树拖拽演示 -->
       <div class="demo-section full-width">
-        <h2 class="section-title">跨树拖拽自动更新演示</h2>
-        <div class="mb-4 flex gap-4 items-center">
-          <label class="flex items-center gap-2">
-            <input 
-              type="checkbox" 
-              v-model="crossTreeAutoUpdateEnabled"
-              class="form-checkbox"
-            />
-            <span>启用跨树拖拽自动更新</span>
-          </label>
-          <button 
-            @click="resetAutoUpdateDemo"
-            class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-          >
-            重置演示数据
-          </button>
-        </div>
+        <h2 class="section-title">简化跨树拖拽演示</h2>
+        <p class="text-gray-600 mb-4">
+          演示组件内部自动处理跨树拖拽，只需配置 <code>cross-tree-group</code> 属性即可。
+        </p>
         
         <div class="demo-grid">
-          <!-- 自动更新源树 -->
+          <!-- 简化源树 -->
           <div class="demo-card">
-            <h3 class="text-lg font-medium mb-4">
-              源树 (自动更新: {{ crossTreeAutoUpdateEnabled ? '开启' : '关闭' }})
-            </h3>
+            <h3 class="text-lg font-medium mb-4">源树</h3>
             <Tree
-              ref="autoUpdateTree1Ref"
-              id="auto-tree1"
-              :value="autoUpdateTreeData1"
-              :crossTreeAutoUpdate="crossTreeAutoUpdateEnabled"
+              id="simple-tree1"
+              :value="simpleTreeData1"
               :dragdrop="true"
+              dragdrop-scope="simple-demo"
               selection-mode="single"
-              dragdrop-scope="auto-cross-tree"
-              :expanded-keys="autoUpdateExpandedKeys1"
+              cross-tree-group="simple-demo"
+              :expanded-keys="simpleExpandedKeys1"
               class="demo-tree cross-tree"
-              @cross-tree-drop="onAutoUpdateCrossTreeDrop"
-              @cross-tree-drag-start="onAutoUpdateDragStart"
-              @cross-tree-drag-end="onAutoUpdateDragEnd"
-              @update:expanded-keys="autoUpdateExpandedKeys1 = $event"
+              @cross-tree-move="onSimpleCrossTreeMove"
+              @update:expanded-keys="simpleExpandedKeys1 = $event"
+              @update:value="simpleTreeData1 = $event"
             />
             <div class="tree-info">
               <p class="text-sm text-gray-600">
-                {{ crossTreeAutoUpdateEnabled ? '拖拽将自动更新数据' : '拖拽需要手动确认' }}
+                配置了 cross-tree-group="simple-demo"
               </p>
             </div>
           </div>
           
-          <!-- 自动更新目标树 -->
+          <!-- 简化目标树 -->
           <div class="demo-card">
-            <h3 class="text-lg font-medium mb-4">
-              目标树 (自动更新: {{ crossTreeAutoUpdateEnabled ? '开启' : '关闭' }})
-            </h3>
+            <h3 class="text-lg font-medium mb-4">目标树</h3>
             <Tree
-              ref="autoUpdateTree2Ref"
-              id="auto-tree2"
-              :value="autoUpdateTreeData2"
-              :crossTreeAutoUpdate="crossTreeAutoUpdateEnabled"
+              id="simple-tree2"
+              :value="simpleTreeData2"
               :dragdrop="true"
+              dragdrop-scope="simple-demo"
               selection-mode="single"
-              dragdrop-scope="auto-cross-tree"
+              cross-tree-group="simple-demo"
+              :expanded-keys="simpleExpandedKeys2"
               class="demo-tree cross-tree"
-              @cross-tree-drop="onAutoUpdateCrossTreeDrop"
-              @cross-tree-drag-start="onAutoUpdateDragStart"
-              @cross-tree-drag-end="onAutoUpdateDragEnd"
-              @update:expanded-keys="autoUpdateExpandedKeys2 = $event"
+              @cross-tree-move="onSimpleCrossTreeMove"
+              @update:expanded-keys="simpleExpandedKeys2 = $event"
+              @update:value="simpleTreeData2 = $event"
             />
             <div class="tree-info">
               <p class="text-sm text-gray-600">
-                {{ crossTreeAutoUpdateEnabled ? '接收拖拽并自动更新' : '接收拖拽但需要确认' }}
+                配置了 cross-tree-group="simple-demo"
               </p>
             </div>
           </div>
           
-          <!-- 操作控制面板 -->
+          <!-- 简化控制面板 -->
           <div class="demo-card">
             <h3 class="text-lg font-medium mb-4">操作控制</h3>
             <div class="space-y-4">
               <div class="control-group">
-                <h4 class="text-md font-medium mb-2">拖拽控制</h4>
+                <h4 class="text-md font-medium mb-2">演示操作</h4>
                 <div class="flex gap-2 flex-wrap">
                   <button 
-                    @click="simulateAutoUpdateDrag"
-                    class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
+                    @click="resetSimpleDemo"
+                    class="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors text-sm"
                   >
-                    模拟拖拽
+                    重置数据
                   </button>
                   <button 
-                    @click="toggleAutoUpdate"
-                    class="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+                    @click="testSimpleCrossTreeDrag"
+                    class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm"
                   >
-                    切换自动更新
+                    测试拖拽
                   </button>
                 </div>
               </div>
               
               <div class="control-group">
-                <h4 class="text-md font-medium mb-2">状态信息</h4>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="info-label">自动更新状态:</span>
-                    <span class="info-value" :class="crossTreeAutoUpdateEnabled ? 'text-green-600' : 'text-blue-600'">
-                      {{ crossTreeAutoUpdateEnabled ? '启用' : '禁用' }}
-                    </span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">待确认操作:</span>
-                    <span class="info-value">{{ pendingOperations.length }}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 待确认操作列表 -->
-              <div v-if="pendingOperations.length > 0" class="control-group">
-                <h4 class="text-md font-medium mb-2">待确认操作</h4>
-                <div class="space-y-2">
-                  <div 
-                    v-for="(operation, index) in pendingOperations" 
-                    :key="index"
-                    class="pending-operation"
-                  >
-                    <div class="operation-info">
-                      <span class="text-sm">
-                        拖拽 "{{ operation.dragNode.label }}" 到 "{{ operation.dropNode.label }}"
-                      </span>
-                    </div>
-                    <div class="operation-actions">
-                      <button 
-                        @click="acceptOperation(operation)"
-                        class="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-                      >
-                        接受
-                      </button>
-                      <button 
-                        @click="rejectOperation(operation)"
-                        class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs hover:bg-blue-300"
-                      >
-                        拒绝
-                      </button>
-                    </div>
-                  </div>
+                <h4 class="text-md font-medium mb-2">使用说明</h4>
+                <div class="text-sm text-gray-600 space-y-1">
+                  <p>• 只需为两个树设置相同的 <code>cross-tree-group</code></p>
+                  <p>• 监听 <code>@cross-tree-move</code> 事件获取拖拽信息</p>
+                  <p>• 组件内部自动处理数据移动和更新</p>
+                  <p>• 无需手动实现复杂的拖拽逻辑</p>
                 </div>
               </div>
             </div>
@@ -1645,94 +1560,57 @@ interface CrossTreeDragInfo {
 
 const lastCrossTreeDragInfo = ref<CrossTreeDragInfo | null>(null)
 
-// 跨树拖拽自动更新演示数据
-const crossTreeAutoUpdateEnabled = ref(false)
-const autoUpdateTreeData1 = ref<TreeNode[]>([
+// 简化的跨树拖拽演示数据
+const simpleTreeData1 = ref<TreeNode[]>([
   {
-    key: 'auto-src-1',
+    key: 'simple-src-1',
     label: '源文件夹 1',
+    draggable: true,
+    droppable: true,
     children: [
-      { key: 'auto-src-1-1', label: '文档 A.txt' },
-      { key: 'auto-src-1-2', label: '图片 B.jpg' },
-      { key: 'auto-src-1-3', label: '视频 C.mp4' }
+      { key: 'simple-src-1-1', label: '文档 A.txt', draggable: true, droppable: true },
+      { key: 'simple-src-1-2', label: '图片 B.jpg', draggable: true, droppable: true },
+      { key: 'simple-src-1-3', label: '视频 C.mp4', draggable: true, droppable: true }
     ]
   },
   {
-    key: 'auto-src-2',
+    key: 'simple-src-2',
     label: '源文件夹 2',
+    draggable: true,
+    droppable: true,
     children: [
-      { key: 'auto-src-2-1', label: '代码 D.js' },
-      { key: 'auto-src-2-2', label: '样式 E.css' }
+      { key: 'simple-src-2-1', label: '代码 D.js', draggable: true, droppable: true },
+      { key: 'simple-src-2-2', label: '样式 E.css', draggable: true, droppable: true }
     ]
   }
 ])
 
-const autoUpdateTreeData2 = ref<TreeNode[]>([
+const simpleTreeData2 = ref<TreeNode[]>([
   {
-    key: 'auto-dest-1',
+    key: 'simple-dest-1',
     label: '目标文件夹 1',
+    draggable: true,
+    droppable: true,
     children: []
   },
   {
-    key: 'auto-dest-2',
+    key: 'simple-dest-2',
     label: '目标文件夹 2',
+    draggable: true,
+    droppable: true,
     children: []
   }
 ])
 
-const autoUpdateExpandedKeys1 = ref<TreeExpandedKeys>({
-  'auto-src-1': true,
-  'auto-src-2': true
+const simpleExpandedKeys1 = ref<TreeExpandedKeys>({
+  'simple-src-1': true,
+  'simple-src-2': true
 })
 
-const autoUpdateExpandedKeys2 = ref<TreeExpandedKeys>({
-  'auto-dest-1': true,
-  'auto-dest-2': true
+const simpleExpandedKeys2 = ref<TreeExpandedKeys>({
+  'simple-dest-1': true,
+  'simple-dest-2': true
 })
-
-// 待确认操作列表
-interface PendingOperation {
-  dragNode: TreeNode
-  dropNode: TreeNode
-  dropPosition: string
-  // 拖拽前的详细信息
-  beforeDrag: {
-    sourceTreeId: string
-    parentNode: TreeNode | null
-    parentLabel: string
-    parentKey: string | number | null
-    index: number
-    level: number
-    path: string
-    fullPath: string[]
-    siblings: TreeNode[]
-    sourceData: TreeNode[]
-  }
-  // 拖拽后的详细信息
-  afterDrop: {
-    targetTreeId: string
-    newParentNode: TreeNode | null
-    newParentLabel: string
-    newParentKey: string | number | null
-    newIndex: number
-    newLevel: number
-    newPath: string
-    newFullPath: string[]
-    newSiblings: TreeNode[]
-    targetData: TreeNode[]
-  }
-  // 操作信息
-  operationInfo: {
-    isCrossTree: boolean
-    timestamp: number
-    operationType: 'move' | 'copy'
-    description: string
-  }
-  accept: () => void
-  reject: () => void
-}
-
-const pendingOperations = ref<PendingOperation[]>([])
 
 // 懒加载树数据
 const lazyTreeData = ref<TreeNode[]>([
@@ -1953,805 +1831,113 @@ const onNodeDrop = (event: any) => {
   })
 }
 
-// 跨树拖拽处理
-const onCrossTreeDrop = (event: any) => {
-  
-  // 接受拖拽
-  event.accept()
-  
-
-  
-  // 获取源树和目标树的ID
-  const sourceTreeElement = event.originalEvent?.dataTransfer?.getData('sourceTreeId') || 
-                           (event.dragNode.element?.closest('[data-tree-id]')?.getAttribute('data-tree-id')) ||
-                           'tree1' // 默认源树
-  
-  const targetTreeElement = event.dropNode.element?.closest('[data-tree-id]')?.getAttribute('data-tree-id') ||
-                           event.originalEvent?.target?.closest('[data-tree-id]')?.getAttribute('data-tree-id') ||
-                           'tree2' // 默认目标树
-  
-  // 确定源树和目标树
-  let sourceTreeId = sourceTreeElement
-  let targetTreeId = targetTreeElement
-  
-  // 如果无法从DOM获取，根据节点key前缀判断
-  if (!sourceTreeId) {
-    sourceTreeId = event.dragNode.key.toString().startsWith('tree1-') ? 'tree1' : 'tree2'
-  }
-  if (!targetTreeId) {
-    targetTreeId = event.dropNode.key.toString().startsWith('tree1-') ? 'tree1' : 'tree2'
-  }
-  
-  // 获取源树和目标树的数据引用
-  const sourceTreeData = sourceTreeId === 'tree1' ? crossTreeData1 : crossTreeData2
-  const targetTreeData = targetTreeId === 'tree1' ? crossTreeData1 : crossTreeData2
-  const sourceExpandedKeys = sourceTreeId === 'tree1' ? crossTreeExpandedKeys1 : crossTreeExpandedKeys2
-  const targetExpandedKeys = targetTreeId === 'tree1' ? crossTreeExpandedKeys1 : crossTreeExpandedKeys2
-  
-  // 获取拖拽前的位置信息
-  const beforePosition = getNodePosition(sourceTreeData.value, event.dragNode.key)
-  const dropNodePosition = getNodePosition(targetTreeData.value, event.dropNode.key)
-  
-  // 保存当前的展开状态
-  const currentSourceExpandedKeys = { ...sourceExpandedKeys.value }
-  const currentTargetExpandedKeys = { ...targetExpandedKeys.value }
-  
-  try {
-    if (sourceTreeId === targetTreeId) {
-      // 同树拖拽，使用原有逻辑
-      const updatedData = moveTreeNode(
-        sourceTreeData.value,
-        event.dragNode.key,
-        event.dropNode.key,
-        event.dropPosition
-      )
-      console.log('🔄 同树拖拽 - 更新前:', JSON.stringify(sourceTreeData.value, null, 2))
-      console.log('🔄 同树拖拽 - 新数据:', JSON.stringify(updatedData, null, 2))
-      sourceTreeData.value = updatedData
-      console.log('✅ 同树拖拽 - 更新后:', JSON.stringify(sourceTreeData.value, null, 2))
-    } else {
-      // 跨树拖拽
-      const result = moveCrossTreeNode(
-        sourceTreeData.value,
-        targetTreeData.value,
-        event.dragNode.key,
-        event.dropNode.key,
-        event.dropPosition
-      )
-      
-      if (result.success) {
-        console.log('🔄 更新前 - sourceTreeData:', JSON.stringify(sourceTreeData.value, null, 2))
-        console.log('🔄 更新前 - targetTreeData:', JSON.stringify(targetTreeData.value, null, 2))
-        console.log('🔄 新数据 - result.sourceNodes:', JSON.stringify(result.sourceNodes, null, 2))
-        console.log('🔄 新数据 - result.targetNodes:', JSON.stringify(result.targetNodes, null, 2))
-        
-        sourceTreeData.value = result.sourceNodes
-        targetTreeData.value = result.targetNodes
-        
-        console.log('✅ 更新后 - sourceTreeData:', JSON.stringify(sourceTreeData.value, null, 2))
-        console.log('✅ 更新后 - targetTreeData:', JSON.stringify(targetTreeData.value, null, 2))
-        
-        // 触发源树和目标树的钩子事件
-        if (sourceTreeId !== targetTreeId) {
-          // 获取源树和目标树的组件引用
-          const sourceTreeRef = sourceTreeId === 'tree1' ? crossTree1Ref.value : crossTree2Ref.value
-          const targetTreeRef = targetTreeId === 'tree1' ? crossTree1Ref.value : crossTree2Ref.value
-          
-          // 触发源树的 node-drag-from 事件
-          if (sourceTreeRef && sourceTreeRef.emitNodeDragFrom) {
-            sourceTreeRef.emitNodeDragFrom(
-              event.originalEvent,
-              event.dragNode,
-              event.dropNode,
-              event.dropPosition,
-              sourceTreeId,
-              targetTreeId
-            )
-          }
-          
-          // 触发目标树的 node-drag-to 事件
-          if (targetTreeRef && targetTreeRef.emitNodeDragTo) {
-            targetTreeRef.emitNodeDragTo(
-              event.originalEvent,
-              event.dragNode,
-              event.dropNode,
-              event.dropPosition,
-              sourceTreeId,
-              targetTreeId
-            )
-          }
-        }
-      } else {
-        // 处理错误情况
-        console.error('跨树拖拽失败')
-        addEventLog('拖拽错误', '跨树拖拽失败: 未知错误', {
-          sourceTreeId,
-          targetTreeId,
-          dragNodeKey: event.dragNode.key,
-          dropNodeKey: event.dropNode.key
-        })
-        return // 出错时提前返回，不更新拖拽信息
-      }
-    }
-  } catch (error) {
-    console.error('拖拽操作异常:', error)
-    addEventLog('拖拽异常', `拖拽操作异常: ${error instanceof Error ? error.message : '未知错误'}`, {
-      sourceTreeId,
-      targetTreeId
-    })
-    return // 出错时提前返回
-  }
-  
-  // 格式化跨树拖拽信息
-  const crossTreeDragInfo = formatCrossTreeDragInfo(
-    sourceTreeId,
-    targetTreeId,
-    event.dragNode,
-    event.dropNode,
-    event.dropPosition,
-    beforePosition,
-    dropNodePosition
-  )
-  
-  // 保存跨树拖拽信息
-  lastCrossTreeDragInfo.value = crossTreeDragInfo
-  
-  // 使用 nextTick 确保在下一个 tick 中恢复展开状态
-  nextTick(() => {
-    // 恢复源树展开状态
-    sourceExpandedKeys.value = { ...currentSourceExpandedKeys }
-    
-    // 恢复目标树展开状态并确保目标节点展开（如果拖拽到内部）
-    const newTargetExpandedKeys = { ...currentTargetExpandedKeys }
-    if (event.dropPosition === 'inside' && event.dropNode.children) {
-      newTargetExpandedKeys[event.dropNode.key] = true
-    }
-    targetExpandedKeys.value = newTargetExpandedKeys
-  })
-  
-  // 添加跨树拖拽日志
-  const crossTreeMessage = crossTreeDragInfo.isCrossTree 
-    ? `跨树拖拽 "${crossTreeDragInfo.dragNodeInfo.label}" 从 ${sourceTreeId} 到 ${targetTreeId} (${crossTreeDragInfo.position})`
-    : `同树拖拽 "${crossTreeDragInfo.dragNodeInfo.label}" 到 "${crossTreeDragInfo.dropNodeInfo.label}" (${crossTreeDragInfo.position})`
-  
-  addEventLog('跨树拖拽', crossTreeMessage, {
-    sourceTreeId: crossTreeDragInfo.sourceTreeId,
-    targetTreeId: crossTreeDragInfo.targetTreeId,
-    dragNode: crossTreeDragInfo.dragNodeInfo,
-    dropNode: crossTreeDragInfo.dropNodeInfo,
-    position: crossTreeDragInfo.position,
-    before: crossTreeDragInfo.before,
-    after: crossTreeDragInfo.after,
-    isCrossTree: crossTreeDragInfo.isCrossTree
-  })
-}
-
-// 跨树拖拽开始事件处理
-const onCrossTreeDragStart = (event: any) => {
-  console.log('🚀 跨树拖拽开始:', event)
-  addEventLog('跨树拖拽开始', `开始跨树拖拽节点: ${event.dragNode.label}`, {
-    sourceTreeId: event.sourceTreeId,
-    dragNode: event.dragNode,
-    isCrossTree: event.isCrossTree,
-    timestamp: event.timestamp,
-    startPosition: event.startPosition
-  })
-}
-
-// 跨树拖拽进入事件处理
-const onCrossTreeDragEnter = (event: any) => {
-  console.log('🎯 跨树拖拽进入:', event)
-  addEventLog('跨树拖拽进入', `拖拽节点进入目标树: ${event.targetTreeId}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
-    isCrossTree: event.isCrossTree,
-    timestamp: event.timestamp
-  })
-}
-
-// 跨树拖拽悬停事件处理
-const onCrossTreeDragOver = (event: any) => {
-  // 由于这个事件触发频繁，只在控制台输出，不添加到事件日志
-  console.log('🔄 跨树拖拽悬停:', event)
-}
-
-// 跨树拖拽离开事件处理
-const onCrossTreeDragLeave = (event: any) => {
-  console.log('🚪 跨树拖拽离开:', event)
-  addEventLog('跨树拖拽离开', `拖拽节点离开目标树: ${event.targetTreeId}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
-    isCrossTree: event.isCrossTree,
-    timestamp: event.timestamp
-  })
-}
-
-// 跨树拖拽放置事件处理
-const onCrossTreeDropEvent = (event: any) => {
-  console.log('📍 跨树拖拽放置:', event)
-  addEventLog('跨树拖拽放置', `跨树拖拽放置: ${event.dragNode.label} 到 ${event.dropNode.label}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
+// 简化的跨树移动处理
+const onCrossTreeMove = (event: any) => {
+  console.log('🎯 跨树移动事件:', {
+    dragNode: event.dragNode.label,
+    dropNode: event.dropNode.label,
     dropPosition: event.dropPosition,
-    isCrossTree: event.isCrossTree,
-    timestamp: event.timestamp
-  })
-}
-
-// 跨树拖拽结束事件处理
-const onCrossTreeDragEnd = (event: any) => {
-  console.log('🏁 跨树拖拽结束:', event)
-  addEventLog('跨树拖拽结束', `跨树拖拽结束: ${event.success ? '成功' : '失败'}`, {
     sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
-    dropPosition: event.dropPosition,
-    isCrossTree: event.isCrossTree,
-    success: event.success,
-    timestamp: event.timestamp
+    targetTreeId: event.targetTreeId
   })
+  
+  // 显示成功消息
+  console.log(`✅ 成功将 "${event.dragNode.label}" 从 ${event.sourceTreeId} 移动到 ${event.targetTreeId}`)
 }
 
-// 跨树拖拽取消事件处理
-const onCrossTreeDragCancel = (event: any) => {
-  console.log('❌ 跨树拖拽取消:', event)
-  addEventLog('跨树拖拽取消', `跨树拖拽被取消: ${event.dragNode.label}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    isCrossTree: event.isCrossTree,
-    timestamp: event.timestamp
-  })
-}
 
-// 拖拽开始处理
-const onDragStart = (event: any) => {
-  isDragging.value = true
-  currentDragInfo.value = {
-    label: event.node.label
-  }
-  
-  // 确定源树ID并设置到 dataTransfer 中
-  const sourceTreeId = event.node.key.toString().startsWith('tree1-') ? 'tree1' : 'tree2'
-  if (event.originalEvent?.dataTransfer) {
-    event.originalEvent.dataTransfer.setData('sourceTreeId', sourceTreeId)
-  }
-  
-  addEventLog('拖拽开始', `开始拖拽节点: ${event.node.label}`, {
-    nodeKey: event.node.key,
-    nodeLabel: event.node.label,
-    sourceTreeId
-  })
-}
-
-// 拖拽结束处理
-const onDragEnd = (event: any) => {
-  isDragging.value = false
-  currentDragInfo.value = null
-  currentHoverInfo.value = null
-  
-  addEventLog('拖拽结束', `结束拖拽节点: ${event.node.label}`, {
-    nodeKey: event.node.key,
-    nodeLabel: event.node.label
-  })
-}
-
-// 源树拖拽离开事件处理
-const onSourceTreeDragFrom = (event: any) => {
-  console.log('🚀 源树钩子被触发 - node-drag-from:', event)
-  
-  addEventLog('源树钩子', `节点 "${event.dragNode.label}" 从源树 ${event.sourceTreeId} 拖拽到目标树 ${event.targetTreeId}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
-    dropPosition: event.dropPosition,
-    hookType: 'node-drag-from'
-  })
-}
-
-// 目标树拖拽接收事件处理
-const onTargetTreeDragTo = (event: any) => {
-  console.log('🎯 目标树钩子被触发 - node-drag-to:', event)
-  
-  addEventLog('目标树钩子', `节点 "${event.dragNode.label}" 从源树 ${event.sourceTreeId} 拖拽到目标树 ${event.targetTreeId}`, {
-    sourceTreeId: event.sourceTreeId,
-    targetTreeId: event.targetTreeId,
-    dragNode: event.dragNode,
-    dropNode: event.dropNode,
-    dropPosition: event.dropPosition,
-    hookType: 'node-drag-to'
-  })
-}
 
 // 跨树拖拽自动更新演示方法
-const onAutoUpdateCrossTreeDrop = (event: any) => {
-  console.log('🎯 自动更新跨树拖拽放置:', event)
-  
-  // 确定源树和目标树的数据引用
-  const sourceTreeId = event.sourceTreeId
-  const targetTreeId = event.targetTreeId
-  
-  let sourceData: Ref<TreeNode[]>
-  let targetData: Ref<TreeNode[]>
-  
-  // 根据树的 ID 确定数据引用
-  if (sourceTreeId === 'auto-tree1') {
-    sourceData = autoUpdateTreeData1
-  } else if (sourceTreeId === 'auto-tree2') {
-    sourceData = autoUpdateTreeData2
-  } else {
-    console.error('❌ 未知的源树 ID:', sourceTreeId)
-    return
-  }
-  
-  if (targetTreeId === 'auto-tree1') {
-    targetData = autoUpdateTreeData1
-  } else if (targetTreeId === 'auto-tree2') {
-    targetData = autoUpdateTreeData2
-  } else {
-    console.error('❌ 未知的目标树 ID:', targetTreeId)
-    return
-  }
-  
-  // 创建数据更新函数
-  const performDataUpdate = () => {
-    try {
-      console.log('🔄 执行跨树数据更新:', {
-        sourceTreeId,
-        targetTreeId,
-        dragNodeKey: event.dragNode.key,
-        dropNodeKey: event.dropNode.key,
-        dropPosition: event.dropPosition
-      })
-      
-      // 使用 moveCrossTreeNode 函数处理跨树数据移动
-      const result = moveCrossTreeNode(
-        sourceData.value,
-        targetData.value,
-        event.dragNode.key,
-        event.dropNode.key,
-        event.dropPosition
-      )
-      
-      if (result.success) {
-        // 更新数据
-        sourceData.value = result.sourceNodes
-        targetData.value = result.targetNodes
-        
-        console.log('✅ 跨树拖拽数据更新成功')
-        addEventLog('数据更新', `跨树拖拽数据更新成功: ${event.dragNode.label} → ${event.dropNode.label}`)
-      } else {
-        console.error('❌ 跨树拖拽数据更新失败')
-        addEventLog('数据更新失败', `跨树拖拽数据更新失败: ${event.dragNode.label} → ${event.dropNode.label}`)
-      }
-    } catch (error) {
-      console.error('❌ 跨树拖拽数据更新异常:', error)
-      addEventLog('数据更新异常', `跨树拖拽数据更新异常: ${error}`)
-    }
-  }
-  
-  if (crossTreeAutoUpdateEnabled.value) {
-    // 自动更新模式：直接执行数据更新并接受拖拽
-    addEventLog('自动更新拖拽', `自动接受跨树拖拽: ${event.dragNode.label} → ${event.dropNode.label}`, {
-      dragNode: event.dragNode,
-      dropNode: event.dropNode,
-      dropPosition: event.dropPosition,
-      autoUpdate: true
-    })
-    
-    // 执行数据更新
-    performDataUpdate()
-    
-    // 调用 accept 方法
-    if (event.accept) {
-      event.accept()
-    }
-  } else {
-    // 手动控制模式：添加到待确认列表
-    addEventLog('手动控制拖拽', `等待确认跨树拖拽: ${event.dragNode.label} → ${event.dropNode.label}`, {
-      dragNode: event.dragNode,
-      dropNode: event.dropNode,
-      dropPosition: event.dropPosition,
-      autoUpdate: false
-    })
-    
-    // 收集拖拽前的详细信息
-    const beforeDragInfo = getNodeDetailedInfo(sourceData.value, event.dragNode.key, sourceTreeId)
-    
-    // 计算拖拽后的详细信息
-    const afterDropInfo = calculateDropInfo(targetData.value, event.dropNode.key, event.dropPosition, event.dragNode, targetTreeId)
-    
-    // 添加到待确认操作列表，包含完整的详细信息
-    pendingOperations.value.push({
-      dragNode: event.dragNode,
-      dropNode: event.dropNode,
-      dropPosition: event.dropPosition,
-      // 拖拽前的详细信息
-      beforeDrag: {
-        sourceTreeId,
-        parentNode: beforeDragInfo.parentNode,
-        parentLabel: beforeDragInfo.parentLabel,
-        parentKey: beforeDragInfo.parentKey,
-        index: beforeDragInfo.index,
-        level: beforeDragInfo.level,
-        path: beforeDragInfo.path,
-        fullPath: beforeDragInfo.fullPath,
-        siblings: beforeDragInfo.siblings,
-        sourceData: beforeDragInfo.sourceData
-      },
-      // 拖拽后的详细信息
-      afterDrop: afterDropInfo,
-      // 操作信息
-      operationInfo: {
-        isCrossTree: sourceTreeId !== targetTreeId,
-        timestamp: Date.now(),
-        operationType: 'move' as const,
-        description: `跨树拖拽: ${event.dragNode.label} 从 ${beforeDragInfo.path} 移动到 ${afterDropInfo.newPath}`
-      },
-      accept: () => {
-        // 执行数据更新
-        performDataUpdate()
-        // 调用原始的 accept 方法
-        if (event.accept) {
-          event.accept()
-        }
-      },
-      reject: event.reject || (() => {})
-    })
-  }
-}
-
-const onAutoUpdateDragStart = (event: any) => {
-  console.log('🚀 自动更新拖拽开始:', event)
-  addEventLog('自动更新拖拽开始', `开始拖拽: ${event.dragNode.label}`, {
+// 简化的跨树移动事件处理
+const onSimpleCrossTreeMove = (event: any) => {
+  console.log('✅ 简化跨树移动事件:', event)
+  addEventLog('跨树移动', `${event.dragNode.label} 移动到 ${event.dropNode.label}`, {
     dragNode: event.dragNode,
-    sourceTreeId: event.sourceTreeId
+    dropNode: event.dropNode,
+    dropPosition: event.dropPosition
   })
 }
 
-const onAutoUpdateDragEnd = (event: any) => {
-  console.log('🏁 自动更新拖拽结束:', event)
-  addEventLog('自动更新拖拽结束', `拖拽结束: ${event.success ? '成功' : '失败'}`, {
-    dragNode: event.dragNode,
-    success: event.success
-  })
-}
-
-const resetAutoUpdateDemo = () => {
-  // 重置演示数据
-  autoUpdateTreeData1.value = [
+// 重置简化演示数据
+const resetSimpleDemo = () => {
+  simpleTreeData1.value = [
     {
-      key: 'auto-src-1',
+      key: 'simple-src-1',
       label: '源文件夹 1',
+      draggable: true,
+      droppable: true,
       children: [
-        { key: 'auto-src-1-1', label: '文档 A.txt' },
-        { key: 'auto-src-1-2', label: '图片 B.jpg' },
-        { key: 'auto-src-1-3', label: '视频 C.mp4' }
+        { key: 'simple-src-1-1', label: '文档 A.txt', draggable: true, droppable: true },
+        { key: 'simple-src-1-2', label: '图片 B.jpg', draggable: true, droppable: true },
+        { key: 'simple-src-1-3', label: '视频 C.mp4', draggable: true, droppable: true }
       ]
     },
     {
-      key: 'auto-src-2',
+      key: 'simple-src-2',
       label: '源文件夹 2',
+      draggable: true,
+      droppable: true,
       children: [
-        { key: 'auto-src-2-1', label: '代码 D.js' },
-        { key: 'auto-src-2-2', label: '样式 E.css' }
+        { key: 'simple-src-2-1', label: '代码 D.js', draggable: true, droppable: true },
+        { key: 'simple-src-2-2', label: '样式 E.css', draggable: true, droppable: true }
       ]
     }
   ]
   
-  autoUpdateTreeData2.value = [
+  simpleTreeData2.value = [
     {
-      key: 'auto-dest-1',
+      key: 'simple-dest-1',
       label: '目标文件夹 1',
+      draggable: true,
+      droppable: true,
       children: []
     },
     {
-      key: 'auto-dest-2',
+      key: 'simple-dest-2',
       label: '目标文件夹 2',
+      draggable: true,
+      droppable: true,
       children: []
     }
   ]
   
-  // 清空待确认操作
-  pendingOperations.value = []
-  
-  addEventLog('重置演示', '自动更新演示数据已重置')
+  addEventLog('重置演示', '简化演示数据已重置')
 }
 
-const toggleAutoUpdate = () => {
-  crossTreeAutoUpdateEnabled.value = !crossTreeAutoUpdateEnabled.value
-  addEventLog('切换模式', `跨树拖拽自动更新: ${crossTreeAutoUpdateEnabled.value ? '启用' : '禁用'}`)
+// 测试简化跨树拖拽功能
+const testSimpleCrossTreeDrag = () => {
+  console.log('🧪 开始测试简化跨树拖拽功能')
+  
+  // 查找源节点 - 从第一个树的第一个子节点
+  const sourceNode = simpleTreeData1.value[0]?.children?.[0]
+  const targetNode = simpleTreeData2.value[0]
+  
+  if (!sourceNode || !targetNode) {
+    console.error('❌ 找不到源节点或目标节点')
+    addEventLog('测试失败', '找不到源节点或目标节点')
+    return
+  }
+  
+  console.log('✅ 找到源节点:', sourceNode)
+  console.log('✅ 找到目标节点:', targetNode)
+  
+  // 模拟跨树拖拽事件
+  const mockEvent = {
+    originalEvent: new Event('drop'),
+    dragNode: sourceNode,
+    dropNode: targetNode,
+    dropPosition: 'inside' as const,
+    sourceTreeId: 'simple-tree1',
+    targetTreeId: 'simple-tree2',
+    isCrossTree: true
+  }
+  
+  console.log('🚀 触发简化跨树拖拽事件:', mockEvent)
+  onSimpleCrossTreeMove(mockEvent)
+  addEventLog('测试拖拽', `模拟拖拽: ${sourceNode.label} → ${targetNode.label}`)
 }
 
-const simulateAutoUpdateDrag = () => {
-  // 模拟一个拖拽操作
-  const sourceNode = autoUpdateTreeData1.value[0]?.children?.[0]
-  const targetNode = autoUpdateTreeData2.value[0]
-  
-  if (sourceNode && targetNode) {
-    const mockEvent = {
-      dragNode: sourceNode,
-      dropNode: targetNode,
-      dropPosition: 'inside',
-      isCrossTree: true,
-      accept: () => {
-        console.log('✅ 模拟拖拽被接受')
-        addEventLog('模拟拖拽', '模拟拖拽操作已接受')
-      },
-      reject: () => {
-        console.log('❌ 模拟拖拽被拒绝')
-        addEventLog('模拟拖拽', '模拟拖拽操作已拒绝')
-      }
-    }
-    
-    onAutoUpdateCrossTreeDrop(mockEvent)
-  }
-}
 
-// 辅助函数：获取节点的完整路径信息
-const getNodeDetailedInfo = (treeData: TreeNode[], nodeKey: string | number, treeId: string) => {
-  const result = {
-    parentNode: null as TreeNode | null,
-    parentLabel: '',
-    parentKey: null as string | number | null,
-    index: -1,
-    level: 0,
-    path: '',
-    fullPath: [] as string[],
-    siblings: [] as TreeNode[],
-    sourceData: treeData
-  }
-
-  const findNodeInfo = (nodes: TreeNode[], targetKey: string | number, currentPath: string[] = [], currentLevel = 0): boolean => {
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i]
-      const newPath = [...currentPath, node.label]
-      
-      if (node.key === targetKey) {
-        // 找到目标节点
-        result.index = i
-        result.level = currentLevel
-        result.path = newPath.join(' > ')
-        result.fullPath = newPath
-        result.siblings = [...nodes]
-        
-        // 如果有父级路径，设置父节点信息
-        if (currentPath.length > 0) {
-          // 查找父节点
-          const parentPath = currentPath.slice(0, -1)
-          const parentNode = findNodeByPath(treeData, parentPath)
-          if (parentNode) {
-            result.parentNode = parentNode
-            result.parentLabel = parentNode.label
-            result.parentKey = parentNode.key
-          }
-        } else {
-          result.parentLabel = `${treeId} 根节点`
-          result.parentKey = null
-        }
-        return true
-      }
-      
-      if (node.children && node.children.length > 0) {
-        if (findNodeInfo(node.children, targetKey, newPath, currentLevel + 1)) {
-          return true
-        }
-      }
-    }
-    return false
-  }
-
-  findNodeInfo(treeData, nodeKey)
-  return result
-}
-
-// 辅助函数：根据路径查找节点
-const findNodeByPath = (treeData: TreeNode[], path: string[]): TreeNode | null => {
-  if (path.length === 0) return null
-  
-  let currentNodes = treeData
-  let currentNode: TreeNode | null = null
-  
-  for (const label of path) {
-    currentNode = currentNodes.find(node => node.label === label) || null
-    if (!currentNode) return null
-    if (currentNode.children) {
-      currentNodes = currentNode.children
-    }
-  }
-  
-  return currentNode
-}
-
-// 辅助函数：计算拖拽后的位置信息
-const calculateDropInfo = (treeData: TreeNode[], dropNodeKey: string | number, dropPosition: string, dragNode: TreeNode, treeId: string) => {
-  const dropNodeInfo = getNodeDetailedInfo(treeData, dropNodeKey, treeId)
-  
-  let newIndex = -1
-  let newParentNode: TreeNode | null = null
-  let newParentLabel = ''
-  let newParentKey: string | number | null = null
-  let newSiblings: TreeNode[] = []
-  let newLevel = dropNodeInfo.level
-  let newPath = ''
-  let newFullPath: string[] = []
-
-  if (dropPosition === 'inside') {
-    // 拖拽到节点内部
-    const dropNode = findTreeNode(treeData, dropNodeKey)
-    if (dropNode) {
-      newParentNode = dropNode
-      newParentLabel = dropNode.label
-      newParentKey = dropNode.key
-      newSiblings = dropNode.children || []
-      newIndex = newSiblings.length
-      newLevel = dropNodeInfo.level + 1
-      newFullPath = [...dropNodeInfo.fullPath, dragNode.label]
-      newPath = newFullPath.join(' > ')
-    }
-  } else {
-    // 拖拽到节点前后
-    newParentNode = dropNodeInfo.parentNode
-    newParentLabel = dropNodeInfo.parentLabel
-    newParentKey = dropNodeInfo.parentKey
-    newSiblings = [...dropNodeInfo.siblings]
-    newLevel = dropNodeInfo.level
-    
-    if (dropPosition === 'before') {
-      newIndex = dropNodeInfo.index
-    } else { // after
-      newIndex = dropNodeInfo.index + 1
-    }
-    
-    if (newParentNode) {
-      newFullPath = [...dropNodeInfo.fullPath.slice(0, -1), dragNode.label]
-    } else {
-      newFullPath = [dragNode.label]
-    }
-    newPath = newFullPath.join(' > ')
-  }
-
-  return {
-    targetTreeId: treeId,
-    newParentNode,
-    newParentLabel,
-    newParentKey,
-    newIndex,
-    newLevel,
-    newPath,
-    newFullPath,
-    newSiblings,
-    targetData: treeData
-  }
-}
-
-const acceptOperation = (operation: PendingOperation) => {
-  operation.accept()
-  // 从待确认列表中移除
-  const index = pendingOperations.value.indexOf(operation)
-  if (index > -1) {
-    pendingOperations.value.splice(index, 1)
-  }
-  
-  // 延迟清理拖拽状态，确保DOM更新完成后清理所有拖拽相关的CSS类
-  nextTick(() => {
-    setTimeout(() => {
-      // 手动清理所有拖拽状态指示器类
-      const allElements = document.querySelectorAll('*')
-      allElements.forEach(element => {
-        element.classList.remove(
-          'p-tree-drop-indicator',
-          'p-tree-drop-inside',
-          'p-tree-drop-above',
-          'p-tree-drop-below',
-          'p-tree-drop-before',
-          'p-tree-drop-after',
-          'p-tree-cross-tree-drop',
-          'drop-inside',
-          'drop-above',
-          'drop-below',
-          'drop-root',
-          'cross-tree-drop'
-        )
-        // 移除拖拽位置属性
-        element.removeAttribute('data-drop-position')
-      })
-      
-      // 强制重置所有Tree组件的拖拽状态
-      if (crossTree1Ref.value && crossTree1Ref.value.resetDragState) {
-        crossTree1Ref.value.resetDragState()
-        console.log('🔄 已重置 crossTree1 的拖拽状态')
-      }
-      if (crossTree2Ref.value && crossTree2Ref.value.resetDragState) {
-        crossTree2Ref.value.resetDragState()
-        console.log('🔄 已重置 crossTree2 的拖拽状态')
-      }
-      
-      // 重置全局拖拽状态
-      resetGlobalDragState()
-      
-      console.log('🧹 已清理所有拖拽状态指示器并重置全局拖拽状态')
-    }, 100) // 100ms延迟确保DOM完全更新
-  })
-  
-  // 格式化时间戳
-  const operationTime = new Date(operation.operationInfo.timestamp).toLocaleString()
-  
-  // 记录详细的接受操作日志
-  addEventLog('操作确认', `✅ 已接受拖拽操作`, {
-    操作描述: operation.operationInfo.description,
-    操作时间: operationTime,
-    操作类型: operation.operationInfo.operationType,
-    是否跨树: operation.operationInfo.isCrossTree ? '是' : '否',
-    拖拽节点: operation.dragNode.label,
-    目标节点: operation.dropNode.label,
-    放置位置: operation.dropPosition,
-    拖拽前信息: {
-      源树: operation.beforeDrag.sourceTreeId,
-      父节点: operation.beforeDrag.parentLabel,
-      原始位置: `第 ${operation.beforeDrag.index + 1} 个位置`,
-      层级: `第 ${operation.beforeDrag.level + 1} 层`,
-      完整路径: operation.beforeDrag.path,
-      兄弟节点数量: operation.beforeDrag.siblings.length
-    },
-    拖拽后信息: {
-      目标树: operation.afterDrop.targetTreeId,
-      新父节点: operation.afterDrop.newParentLabel,
-      新位置: `第 ${operation.afterDrop.newIndex + 1} 个位置`,
-      新层级: `第 ${operation.afterDrop.newLevel + 1} 层`,
-      新路径: operation.afterDrop.newPath,
-      新兄弟节点数量: operation.afterDrop.newSiblings.length
-    }
-  })
-}
-
-const rejectOperation = (operation: PendingOperation) => {
-  operation.reject()
-  // 从待确认列表中移除
-  const index = pendingOperations.value.indexOf(operation)
-  if (index > -1) {
-    pendingOperations.value.splice(index, 1)
-  }
-  
-  // 格式化时间戳
-  const operationTime = new Date(operation.operationInfo.timestamp).toLocaleString()
-  
-  // 记录详细的拒绝操作日志
-  addEventLog('操作拒绝', `❌ 已拒绝拖拽操作`, {
-    操作描述: operation.operationInfo.description,
-    操作时间: operationTime,
-    操作类型: operation.operationInfo.operationType,
-    是否跨树: operation.operationInfo.isCrossTree ? '是' : '否',
-    拖拽节点: operation.dragNode.label,
-    目标节点: operation.dropNode.label,
-    放置位置: operation.dropPosition,
-    拖拽前信息: {
-      源树: operation.beforeDrag.sourceTreeId,
-      父节点: operation.beforeDrag.parentLabel,
-      原始位置: `第 ${operation.beforeDrag.index + 1} 个位置`,
-      层级: `第 ${operation.beforeDrag.level + 1} 层`,
-      完整路径: operation.beforeDrag.path,
-      兄弟节点数量: operation.beforeDrag.siblings.length
-    },
-    拖拽后信息: {
-      目标树: operation.afterDrop.targetTreeId,
-      新父节点: operation.afterDrop.newParentLabel,
-      新位置: `第 ${operation.afterDrop.newIndex + 1} 个位置`,
-      新层级: `第 ${operation.afterDrop.newLevel + 1} 层`,
-      新路径: operation.afterDrop.newPath,
-      新兄弟节点数量: operation.afterDrop.newSiblings.length
-    },
-    拒绝原因: '用户手动拒绝操作'
-  })
-}
 
 // 测试跨树拖拽功能
 const testCrossTreeDrag = () => {
@@ -2802,7 +1988,7 @@ const testCrossTreeDrag = () => {
   }
   
   console.log('🚀 触发跨树拖拽事件:', mockEvent)
-  onCrossTreeDrop(mockEvent)
+  onCrossTreeMove(mockEvent)
 }
 
 // 真实拖拽测试 - 检查DOM元素是否真的可拖拽
@@ -2859,7 +2045,7 @@ const testRealDrag = () => {
   }
   
   console.log('🚀 直接调用跨树拖拽函数:', mockDragEvent)
-  onCrossTreeDrop(mockDragEvent)
+  onCrossTreeMove(mockDragEvent)
 }
 
 // 测试新插入节点的拖拽功能
