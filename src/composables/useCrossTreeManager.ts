@@ -33,6 +33,10 @@ interface TreeInstance {
   updateData: (data: TreeNode[]) => void
   /** 触发事件的方法 */
   emit: (event: string, ...args: any[]) => void
+  /** 获取展开状态的方法 */
+  getExpandedKeys?: () => Record<string | number, boolean>
+  /** 设置展开状态的方法 */
+  setExpandedKeys?: (keys: Record<string | number, boolean>) => void
 }
 
 // 全局状态
@@ -48,9 +52,34 @@ const globalState = reactive<CrossTreeState>({
 const treeInstances = new Map<string, TreeInstance>()
 
 /**
+ * 跨树拖拽管理器返回类型
+ */
+export interface UseCrossTreeManagerReturn {
+  isDragging: any
+  currentDragNode: any
+  sourceTreeId: any
+  registerTree: (
+    id: string,
+    group: string | null,
+    dataRef: any,
+    updateData: (data: TreeNode[]) => void,
+    emit: (event: string, ...args: any[]) => void,
+    getExpandedKeys?: () => Record<string | number, boolean>,
+    setExpandedKeys?: (keys: Record<string | number, boolean>) => void
+  ) => void
+  unregisterTree: (id: string) => void
+  startCrossTreeDrag: (dragNode: TreeNode, sourceTreeId: string, sourceGroup: string | null) => void
+  endCrossTreeDrag: () => void
+  canCrossTreeDrop: (targetTreeId: string, targetGroup: string | null) => boolean
+  performCrossTreeDrop: (targetTreeId: string, dropNode: TreeNode, dropPosition: TreeDropPosition) => boolean
+  getCrossTreeDragInfo: (dataTransfer?: DataTransfer) => any
+  setCrossTreeDragData: (dataTransfer: DataTransfer) => void
+}
+
+/**
  * 跨树拖拽管理器
  */
-export function useCrossTreeManager() {
+export function useCrossTreeManager(): UseCrossTreeManagerReturn {
   
   /**
    * 注册树实例
@@ -60,14 +89,18 @@ export function useCrossTreeManager() {
     group: string | null,
     dataRef: any,
     updateData: (data: TreeNode[]) => void,
-    emit: (event: string, ...args: any[]) => void
+    emit: (event: string, ...args: any[]) => void,
+    getExpandedKeys?: () => Record<string | number, boolean>,
+    setExpandedKeys?: (keys: Record<string | number, boolean>) => void
   ) => {
     treeInstances.set(id, {
       id,
       group,
       dataRef,
       updateData,
-      emit
+      emit,
+      getExpandedKeys,
+      setExpandedKeys
     })
     
     console.log(`🌲 注册树实例: ${id}, 组: ${group || '无'}`)
@@ -150,6 +183,64 @@ export function useCrossTreeManager() {
   }
   
   /**
+   * 收集节点及其所有子节点的展开状态
+   */
+  const collectExpandedState = (node: TreeNode, expandedKeys: Record<string | number, boolean>): Record<string | number, boolean> => {
+    const result: Record<string | number, boolean> = {}
+    
+    const collect = (n: TreeNode) => {
+      if (expandedKeys[n.key]) {
+        result[n.key] = true
+      }
+      if (n.children) {
+        n.children.forEach(child => collect(child))
+      }
+    }
+    
+    collect(node)
+    return result
+  }
+  
+  /**
+   * 更新节点key并保持展开状态的映射关系
+   */
+  const updateExpandedKeysForCrossTree = (
+    oldExpandedKeys: Record<string | number, boolean>,
+    oldKey: string | number,
+    newKey: string | number,
+    node: TreeNode
+  ): Record<string | number, boolean> => {
+    const result = { ...oldExpandedKeys }
+    
+    // 递归更新节点及其子节点的展开状态key
+    const updateKeys = (n: TreeNode, oldPrefix: string, newPrefix: string) => {
+      const oldNodeKey = n.key.toString()
+      const newNodeKey = oldNodeKey.replace(oldPrefix, newPrefix)
+      
+      if (result[n.key]) {
+        delete result[n.key]
+        result[newNodeKey] = true
+      }
+      
+      if (n.children) {
+        n.children.forEach(child => updateKeys(child, oldPrefix, newPrefix))
+      }
+    }
+    
+    // 提取树ID前缀
+    const oldKeyStr = oldKey.toString()
+    const newKeyStr = newKey.toString()
+    const oldPrefix = oldKeyStr.split('-')[0]
+    const newPrefix = newKeyStr.split('-')[0]
+    
+    if (oldPrefix !== newPrefix) {
+      updateKeys(node, oldPrefix, newPrefix)
+    }
+    
+    return result
+  }
+  
+  /**
    * 执行跨树拖拽
    */
   const performCrossTreeDrop = (
@@ -183,6 +274,14 @@ export function useCrossTreeManager() {
         targetTreeId
       })
       
+      // 收集被拖拽节点的展开状态
+      let dragNodeExpandedState: Record<string | number, boolean> = {}
+      if (sourceTree.getExpandedKeys) {
+        const sourceExpandedKeys = sourceTree.getExpandedKeys()
+        dragNodeExpandedState = collectExpandedState(globalState.dragNode, sourceExpandedKeys)
+        console.log('📋 收集到的展开状态:', dragNodeExpandedState)
+      }
+      
       // 执行数据移动
       const result = moveCrossTreeNode(
         sourceData,
@@ -196,6 +295,34 @@ export function useCrossTreeManager() {
         // 更新两个树的数据
         sourceTree.updateData(result.sourceNodes)
         targetTree.updateData(result.targetNodes)
+        
+        // 传递展开状态到目标树
+        if (Object.keys(dragNodeExpandedState).length > 0 && targetTree.setExpandedKeys && targetTree.getExpandedKeys) {
+          const targetExpandedKeys = targetTree.getExpandedKeys()
+          
+          // 更新展开状态的key（从源树ID前缀改为目标树ID前缀）
+          const updatedExpandedState = updateExpandedKeysForCrossTree(
+            dragNodeExpandedState,
+            globalState.dragNode.key,
+            globalState.dragNode.key, // 这里会在 moveCrossTreeNode 中更新
+            globalState.dragNode
+          )
+          
+          // 合并到目标树的展开状态
+          const newTargetExpandedKeys = { ...targetExpandedKeys, ...updatedExpandedState }
+          targetTree.setExpandedKeys(newTargetExpandedKeys)
+          console.log('✅ 展开状态已传递到目标树')
+          
+          // 从源树移除已移动节点的展开状态
+          if (sourceTree.setExpandedKeys && sourceTree.getExpandedKeys) {
+            const sourceExpandedKeys = sourceTree.getExpandedKeys()
+            const newSourceExpandedKeys = { ...sourceExpandedKeys }
+            Object.keys(dragNodeExpandedState).forEach(key => {
+              delete newSourceExpandedKeys[key]
+            })
+            sourceTree.setExpandedKeys(newSourceExpandedKeys)
+          }
+        }
         
         // 触发跨树移动事件
         const moveEvent = {

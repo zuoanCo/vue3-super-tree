@@ -418,7 +418,13 @@ onMounted(() => {
       (newData: TreeNodeType[]) => {
         emit('update:value', newData)
       },
-      emit
+      emit,
+      // 传递展开状态的获取和设置方法
+      () => expandedKeys.value,
+      (keys: Record<string | number, boolean>) => {
+        expandedKeys.value = keys
+        emit('update:expandedKeys', keys)
+      }
     )
   }
   
@@ -1437,9 +1443,35 @@ provide('tree', {
 })
 
 // 监听器
-watch(() => props.value, (newValue) => {
-  if (newValue) {
-    resetState()
+// 注意：不在 props.value 变化时重置状态，以保持拖拽后的展开状态
+// 如果需要清理无效的展开状态（节点已被移除），在下面的 watch 中处理
+watch(() => props.value, (newValue, oldValue) => {
+  if (newValue && oldValue) {
+    // 清理已不存在的节点的展开状态
+    const allKeys = new Set<string | number>()
+    const collectKeys = (nodes: TreeNodeType[]) => {
+      nodes.forEach(node => {
+        allKeys.add(node.key)
+        if (node.children) {
+          collectKeys(node.children)
+        }
+      })
+    }
+    collectKeys(newValue)
+    
+    // 移除不存在的节点的展开状态
+    const currentExpandedKeys = { ...expandedKeys.value }
+    let hasChanges = false
+    Object.keys(currentExpandedKeys).forEach(key => {
+      if (!allKeys.has(key)) {
+        delete currentExpandedKeys[key]
+        hasChanges = true
+      }
+    })
+    
+    if (hasChanges) {
+      expandedKeys.value = currentExpandedKeys
+    }
   }
 }, { deep: true })
 
