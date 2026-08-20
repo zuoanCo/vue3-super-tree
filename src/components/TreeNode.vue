@@ -13,7 +13,7 @@
       ref="contentRef"
       :class="contentClasses"
       :style="contentStyles"
-      :tabindex="!hasChildren ? 0 : -1"
+      :tabindex="0"
       @click="handleNodeClick"
       @dblclick="handleNodeDoubleClick"
       @contextmenu="handleContextMenu"
@@ -95,6 +95,40 @@
           {{ node.label }}
         </slot>
       </span>
+
+      <!-- 节点操作按钮（悬停显示；点击不触发选中/展开/拖拽） -->
+      <span
+        v-if="$slots.actions || resolvedActions.length > 0"
+        class="p-tree-node-actions"
+        @click.stop
+        @dblclick.stop
+        @contextmenu.stop
+        @mousedown.stop
+        @dragstart.stop
+      >
+        <slot name="actions" :node="node" :level="level">
+          <button
+            v-for="action in resolvedActions"
+            :key="action.key"
+            type="button"
+            class="p-tree-node-action"
+            :class="{ 'p-tree-node-action-danger': action.danger }"
+            :title="action.title"
+            :aria-label="action.title || action.label || action.key"
+            :disabled="isActionDisabled(action)"
+            tabindex="-1"
+            @click.stop="handleActionClick(action, $event)"
+          >
+            <component
+              v-if="action.icon && isIconComponent(action.icon)"
+              :is="action.icon"
+              :size="14"
+            />
+            <i v-else-if="action.icon" :class="action.icon"></i>
+            <span v-else>{{ action.label }}</span>
+          </button>
+        </slot>
+      </span>
     </div>
 
     <!-- 子节点 -->
@@ -119,6 +153,9 @@
         :selected-text-color="selectedTextColor"
         :focus-background-color="focusBackgroundColor"
         :focus-text-color="focusTextColor"
+        :tree-id="treeId"
+        :config="config"
+        :node-actions="nodeActions"
         @node-click="$emit('node-click', $event)"
         @node-double-click="$emit('node-double-click', $event)"
         @node-context-menu="$emit('node-context-menu', $event)"
@@ -132,23 +169,27 @@
         <template #node="slotProps">
           <slot name="node" v-bind="slotProps" />
         </template>
+        <template #actions="slotProps">
+          <slot name="actions" v-bind="slotProps" />
+        </template>
       </TreeNode>
     </ul>
   </li>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, type Component, onMounted, ref, nextTick } from 'vue'
+import { computed, inject, type Component, ref } from 'vue'
 import { Check, Minus, Loader2 } from 'lucide-vue-next'
-import type { 
-  TreeNode as TreeNodeType, 
+import type {
+  TreeNode as TreeNodeType,
   TreeSelectionMode,
   TreeNodeSelectEvent,
   TreeNodeUnselectEvent,
   TreeNodeExpandEvent,
   TreeNodeCollapseEvent,
   TreeNodeDropEvent,
-  TreeConfig
+  TreeConfig,
+  TreeNodeAction
 } from '../lib/types'
 import { DEFAULT_TREE_CONFIG } from '../lib/types'
 
@@ -169,6 +210,7 @@ interface Props {
   focusTextColor?: string
   treeId?: string
   config?: TreeConfig
+  nodeActions?: TreeNodeAction[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -183,7 +225,8 @@ const props = withDefaults(defineProps<Props>(), {
   selectedBackgroundColor: '#e3f2fd',
   selectedTextColor: '#1565c0',
   focusBackgroundColor: '#1e40af',
-  focusTextColor: 'white'
+  focusTextColor: 'white',
+  nodeActions: () => []
 })
 
 // Emits
@@ -218,11 +261,6 @@ const hasChildren = computed(() => {
 const isDraggable = computed(() => {
   const result = props.draggableNodes && props.node.draggable !== false
   // 添加更详细的调试信息
-  console.log('🔍 isDraggable computed for node:', props.node.key, {
-    draggableNodes: props.draggableNodes,
-    nodeDraggable: props.node.draggable,
-    result: result
-  })
   return result
 })
 
@@ -426,36 +464,20 @@ const handleCheckboxClick = (event: Event) => {
 
 // 拖拽事件
 const handleDragStart = (event: DragEvent) => {
-  console.log('🚀 TreeNode handleDragStart called for node:', props.node.key, props.node.label)
-  console.log('🚀 event.target:', event.target)
-  console.log('🚀 event.currentTarget:', event.currentTarget)
-  console.log('🚀 event.target draggable attribute:', (event.target as HTMLElement)?.getAttribute('draggable'))
-  console.log('🚀 contentRef.value:', contentRef.value)
-  console.log('🚀 contentRef.value draggable:', contentRef.value?.getAttribute('draggable'))
-  console.log('🚀 tree object:', tree)
-  console.log('🚀 tree.onDragStart available:', !!tree.onDragStart)
-  console.log('🚀 event:', event)
-  console.log('🚀 isDraggable.value:', isDraggable.value)
-  console.log('🚀 props.draggableNodes:', props.draggableNodes)
-  console.log('🚀 props.node.draggable:', props.node.draggable)
   
   if (!isDraggable.value) {
-    console.log('❌ Node is not draggable, preventing default')
     event.preventDefault()
     return
   }
   
   // 调用父组件的拖拽开始方法
   if (tree.onDragStart) {
-    console.log('✅ Calling tree.onDragStart')
     tree.onDragStart(event, props.node)
   } else {
-    console.log('❌ tree.onDragStart is not available')
   }
   
   // 发出拖拽开始事件
   emit('node-drag-start', { originalEvent: event, node: props.node })
-  console.log('✅ Emitted node-drag-start event')
 }
 
 const handleDragEnd = (event: DragEvent) => {
@@ -477,32 +499,31 @@ const handleDragEnter = (event: DragEvent) => {
 }
 
 const handleDragOver = (event: DragEvent) => {
-  console.log('🔥 DRAG OVER:', props.node.label)
   event.preventDefault()
-  tree.onDragOver(event, props.node, props.treeId || '')
+  if (tree.onDragOver) {
+    tree.onDragOver(event, props.node, props.treeId || '')
+  }
 }
 
 const handleDragLeave = (event: DragEvent) => {
-  console.log('🔥 DRAG LEAVE:', props.node.label)
-  tree.onDragLeave(event)
+  if (tree.onDragLeave) {
+    tree.onDragLeave(event)
+  }
 }
 
 const handleDrop = (event: DragEvent) => {
   event.preventDefault()
   
-  console.log('🎯 TreeNode handleDrop:', props.node.label)
   
   // 调用父组件的拖拽放置方法
   let dropEvent: TreeNodeDropEvent | null = null
   if (tree.onDrop) {
     dropEvent = tree.onDrop(event, props.node)
-    console.log('📦 从 tree.onDrop 获得事件:', dropEvent)
   }
   
   // 对于跨树拖拽，即使 tree.onDrop 返回 null，也要触发 node-drop 事件
   // 让 Tree 组件来处理跨树拖拽逻辑
   if (!dropEvent) {
-    console.log('⚠️ tree.onDrop 返回 null，可能是跨树拖拽，仍然触发 node-drop 事件')
     // 创建一个基础的 dropEvent 对象，让 Tree 组件处理
     dropEvent = {
       originalEvent: event,
@@ -520,11 +541,9 @@ const handleDrop = (event: DragEvent) => {
   
   // 如果仍然没有有效的事件对象，才跳过
   if (!dropEvent) {
-    console.log('❌ 无法创建拖拽事件对象，跳过 node-drop 触发')
     return
   }
   
-  console.log('✅ 触发 node-drop 事件:', dropEvent)
   emit('node-drop', dropEvent)
 }
 
@@ -571,59 +590,23 @@ const isIconComponent = (icon: any): icon is Component => {
   return typeof icon === 'object' || typeof icon === 'function'
 }
 
-// 调试：检查跨树节点的 DOM 元素
-onMounted(() => {
-  console.log('🔧 TreeNode mounted:', props.node.label)
-  console.log('🔧 Adding direct event listeners to:', props.node.label)
-  
-  // 使用 nextTick 确保 DOM 已经完全渲染
-  nextTick(() => {
-    console.log('🔧 contentRef.value:', contentRef.value)
-    console.log('🔧 contentRef.value type:', typeof contentRef.value)
-    
-    if (contentRef.value) {
-      console.log('🔧 contentRef.value is valid, adding event listeners')
-      console.log('🔧 contentRef.value tagName:', contentRef.value.tagName)
-      console.log('🔧 contentRef.value classList:', contentRef.value.classList.toString())
-      
-      // 添加点击事件测试
-      contentRef.value.addEventListener('click', (e) => {
-        console.log('🎯 Click event triggered on:', props.node.label)
-      })
-      
-      // 添加鼠标按下事件测试
-      contentRef.value.addEventListener('mousedown', (e) => {
-        console.log('🎯 Mousedown event triggered on:', props.node.label)
-      })
-      
-      // 添加拖拽开始事件测试
-      contentRef.value.addEventListener('dragstart', (e) => {
-        console.log('🎯 Direct dragstart event triggered on:', props.node.label)
-      })
-    } else {
-      console.log('🔧 contentRef.value is null or undefined')
-    }
+// 节点操作按钮：按 visible 过滤
+const resolvedActions = computed(() => {
+  return (props.nodeActions || []).filter(action => {
+    if (action.visible === undefined) return true
+    return typeof action.visible === 'function' ? action.visible(props.node) : action.visible
   })
-
-  // 调试所有节点的 isDraggable 状态
-  console.log(`🔍 Node mounted: ${props.node.key} ${props.node.label} | isDraggable: ${isDraggable.value} | draggableNodes: ${props.draggableNodes} | node.draggable: ${props.node.draggable}`)
-  
-  // 获取节点的 DOM 元素
-  setTimeout(() => {
-    const nodeElement = document.querySelector(`[data-node-key="${props.node.key}"]`)
-    if (nodeElement) {
-      const contentElement = nodeElement.querySelector('.p-tree-node-content')
-      console.log(`🔍 DOM element for ${props.node.key}:`, {
-        nodeElement,
-        contentElement,
-        draggable: contentElement?.getAttribute('draggable'),
-        hasContentElement: !!contentElement
-      })
-    } else {
-      console.log(`❌ No DOM element found for ${props.node.key}`)
-    }
-  }, 500)
 })
+
+const isActionDisabled = (action: TreeNodeAction): boolean => {
+  if (action.disabled === undefined) return false
+  return typeof action.disabled === 'function' ? action.disabled(props.node) : action.disabled
+}
+
+const handleActionClick = (action: TreeNodeAction, event: MouseEvent) => {
+  if (isActionDisabled(action)) return
+  action.onClick(props.node, event)
+}
 </script>
 
 <style scoped>

@@ -66,11 +66,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
       lastUpdateTime: now
     }
     
-    console.log('🚀 开始跨树拖拽:', {
-      dragNode: dragNode.label || dragNode.key,
-      sourceTreeId,
-      autoUpdate
-    })
   }
   
   // 更新目标信息
@@ -86,11 +81,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
     globalCrossTreeState.value.dropPosition = dropPosition || null
     globalCrossTreeState.value.lastUpdateTime = Date.now()
     
-    console.log('🎯 更新跨树拖拽目标:', {
-      targetTreeId,
-      dropNode: dropNode?.label || dropNode?.key,
-      dropPosition
-    })
   }
   
   // 结束跨树拖拽
@@ -112,11 +102,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
       (crossTreeStats.averageProcessingTime * (crossTreeStats.totalOperations - 1) + duration) / 
       crossTreeStats.totalOperations
     
-    console.log('🏁 结束跨树拖拽:', {
-      success,
-      duration: `${duration}ms`,
-      stats: { ...crossTreeStats }
-    })
     
     // 重置状态
     globalCrossTreeState.value = {
@@ -138,11 +123,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
     globalPendingOperations.value.push(operation)
     crossTreeStats.pendingCount = globalPendingOperations.value.length
     
-    console.log('📝 添加待确认操作:', {
-      id: operation.id,
-      description: operation.description,
-      totalPending: globalPendingOperations.value.length
-    })
   }
   
   // 移除待确认操作
@@ -153,11 +133,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
       globalPendingOperations.value.splice(index, 1)
       crossTreeStats.pendingCount = globalPendingOperations.value.length
       
-      console.log('🗑️ 移除待确认操作:', {
-        id: operationId,
-        description: operation.description,
-        remainingPending: globalPendingOperations.value.length
-      })
     }
   }
   
@@ -167,7 +142,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
     globalPendingOperations.value = []
     crossTreeStats.pendingCount = 0
     
-    console.log('🧹 清除所有待确认操作:', { clearedCount: count })
   }
   
   // 获取特定树的待确认操作
@@ -219,7 +193,6 @@ export function useCrossTreeDragState(): UseCrossTreeDragStateReturn {
       averageProcessingTime: 0
     })
     
-    console.log('🔄 重置所有跨树拖拽状态')
   }
   
   return {

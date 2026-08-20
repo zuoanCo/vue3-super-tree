@@ -66,6 +66,7 @@
         :is-selected="isNodeSelected(node)"
         :is-partially-selected="isNodePartiallySelected(node)"
         :is-expanded="isNodeExpanded(node)"
+        :tree-id="id"
 
         :drag-indicator-class="getDragIndicatorClass(node)"
         :draggable-nodes="isDragDropEnabled"
@@ -74,6 +75,7 @@
         :focus-background-color="focusBackgroundColor"
         :focus-text-color="focusTextColor"
         :config="mergedConfig"
+        :node-actions="nodeActions"
         @node-click="handleNodeClick"
         @node-double-click="handleNodeDoubleClick"
         @node-context-menu="handleNodeContextMenu"
@@ -86,6 +88,9 @@
       >
         <template #node="slotProps">
           <slot name="node" v-bind="slotProps" />
+        </template>
+        <template #actions="slotProps">
+          <slot name="actions" v-bind="slotProps" />
         </template>
       </TreeNode>
     </ul>
@@ -147,7 +152,7 @@ import { useSelection } from '../composables/useSelection'
 import { useFocus } from '../composables/useFocus'
 import { useFilter } from '../composables/useFilter'
 import { useCrossTreeManager } from '../composables/useCrossTreeManager'
-import { moveTreeNode, moveCrossTreeNode, getNodeDetailedInfo, calculateDropInfo, mergeTreeConfig, replaceTextTemplate } from '../lib/utils'
+import { moveTreeNode, moveTreeNodes, getNodeDetailedInfo, calculateDropInfo, mergeTreeConfig, replaceTextTemplate } from '../lib/utils'
 import type {
   TreeNode as TreeNodeType,
   TreeProps,
@@ -279,24 +284,18 @@ const crossTreeManager = useCrossTreeManager()
 
 // 响应式数据
 const filterValue = ref('')
-const dragOverNode = ref<TreeNodeType | null>(null)
 const pendingOperations = ref<PendingOperation[]>([])
 
 // Composables
+// useTreeState 只负责展开状态与加载状态；选择状态统一由 useSelection 管理
 const {
-  selectionKeys,
   expandedKeys,
   loading: stateLoading,
-  selectedNodes,
   expandedNodes,
-  hasSelection,
-  hasExpanded,
-  selectNode,
-  toggleNodeSelection: toggleNode,
   expandNode,
   toggleNodeExpansion: collapseNode,
-  clearSelection,
-  resetState
+  setExpandedKeys,
+  resetState: resetTreeState
 } = useTreeState(computed(() => props.value || []), props.selectionKeys, props.expandedKeys, props.selectionMode)
 
 // 新的选择管理 - 需要在 useDragDrop 之前初始化
@@ -311,6 +310,7 @@ const {
   toggleNodeSelection: newToggleNodeSelection,
   clearSelection: newClearSelection,
   selectMultipleNodes,
+  updateCheckboxSelection,
   isSelected: isNodeSelectedNew,
   isPartiallySelected: isNodePartiallySelectedNew,
   setSelectionKeys
@@ -354,12 +354,11 @@ const {
   }
 )
 
-console.log('🔧 Tree组件初始化:', { id: props.id, dragdropScope: props.dragdropScope })
 
 // 空树拖拽状态
 const isDragOverContainer = ref(false)
 
-// 键盘导航管理
+// 键盘导航管理（传入展开状态与树 ID：只导航可见节点，DOM 查询限定在本树内）
 const {
   focusableNodes,
   focusNext,
@@ -370,7 +369,7 @@ const {
   focusElementByNodeKey,
   getCurrentFocusedElement,
   getCurrentFocusedNodeKey
-} = useFocus(computed(() => props.value || []))
+} = useFocus(computed(() => props.value || []), expandedKeys, props.id)
 
 const {
   filteredNodes: filterNodes,
@@ -378,38 +377,37 @@ const {
   hasFilter,
   setFilter,
   clearFilter,
+  setFilterMode,
+  setFilterField,
   filterByPredicate,
   filterByType,
   searchNodes
-} = useFilter(computed(() => props.value || []))
+} = useFilter(computed(() => props.value || []), {
+  mode: props.filterMode,
+  field: props.filterBy
+})
+
+// filterMode / filterBy 属性变化时同步到过滤器
+watch(() => props.filterMode, (mode) => {
+  if (mode) setFilterMode(mode)
+})
+watch(() => props.filterBy, (field) => {
+  if (field) setFilterField(field)
+})
 
 // 计算属性
 const hasNodes = computed(() => {
   return props.value && props.value.length > 0
 })
 
-const isDragDropEnabled = computed(() => {
-  const result = props.dragdrop && !!props.dragdropScope
-  console.log('🔍 Tree isDragDropEnabled:', {
-    dragdrop: props.dragdrop,
-    dragdropScope: props.dragdropScope,
-    result: result
-  })
-  return result
-})
+// dragdrop 单独即可启用拖拽；dragdropScope 仅用于需要隔离的多树场景
+const isDragDropEnabled = computed(() => props.dragdrop)
 
 // 生命周期管理
 onMounted(() => {
-  console.log('🌳 Tree component mounted with props:', {
-    id: props.id,
-    dragdropScope: props.dragdropScope,
-    crossTreeGroup: props.crossTreeGroup,
-    isDragDropEnabled: isDragDropEnabled.value,
-    hasNodes: hasNodes.value,
-    nodeCount: props.value?.length || 0
-  })
   
-  // 注册到跨树拖拽管理器
+  // 注册到跨树拖拽管理器（附带可选的 CrossTreeDataProvider，
+  // 提供时跨树数据读写优先走 provider 而不是 update:value）
   if (props.id && props.dragdrop) {
     crossTreeManager.registerTree(
       props.id,
@@ -418,19 +416,14 @@ onMounted(() => {
       (newData: TreeNodeType[]) => {
         emit('update:value', newData)
       },
-      emit
+      emit,
+      props.crossTreeDataProvider
     )
   }
   
   // 检查每个节点的拖拽属性
   if (props.value) {
     props.value.forEach((node, index) => {
-      console.log(`🔍 Root node ${index}:`, {
-        key: node.key,
-        label: node.label,
-        draggable: node.draggable,
-        droppable: node.droppable
-      })
     })
   }
 })
@@ -444,15 +437,17 @@ onUnmounted(() => {
 
 const filteredNodes = computed(() => {
   if (!hasNodes.value) return []
-  
+
   const nodes = props.value
-  
+
   if (!props.filter || !filterValue.value.trim()) {
     return nodes
   }
-  
+
   try {
-    return searchNodes(filterValue.value)
+    // 使用层级过滤（filterTreeNodes），保留父子结构；
+    // searchNodes 会把匹配节点拍平成一维数组，导致深层节点变成根节点
+    return filterNodes.value
   } catch (error) {
     console.warn('Tree filter error:', error)
     return nodes
@@ -514,7 +509,7 @@ const handleNodeContextMenu = (event: { originalEvent: Event; node: TreeNodeType
 
 const handleNodeToggle = (event: TreeNodeExpandEvent | TreeNodeCollapseEvent) => {
   const { node } = event
-  
+
   if (isNodeExpanded(node)) {
     collapseNode(node)
     emit('node-collapse', event as TreeNodeCollapseEvent)
@@ -525,21 +520,44 @@ const handleNodeToggle = (event: TreeNodeExpandEvent | TreeNodeCollapseEvent) =>
         ...event,
         node: { ...node, loading: true }
       } as TreeNodeExpandEvent)
+      // 通知父组件加载子节点（node-load 是文档声明的懒加载事件，此前从未发射）
+      emit('node-load', {
+        originalEvent: event.originalEvent,
+        node
+      })
     } else {
       expandNode(node)
       emit('node-expand', event as TreeNodeExpandEvent)
     }
   }
-  
+
+  // 同步 v-model:expandedKeys（此前从未发射，双向绑定完全失效）
+  emit('update:expandedKeys', { ...expandedKeys.value })
+
   emit('node-toggle', event)
 }
 
 const handleNodeSelect = (event: TreeNodeSelectEvent) => {
   const { node } = event
-  
-  // 使用新的选择管理
-  const result = newSelectNode(node, true, event.originalEvent)
-  
+
+  // metaKeySelection=true（默认）时，多选模式下不带 Ctrl/Cmd 的点击视为单选，
+  // 先清空已有选择再选中当前节点
+  if (props.selectionMode === 'multiple' && props.metaKeySelection) {
+    const mouseEvent = event.originalEvent as MouseEvent
+    if (!mouseEvent.ctrlKey && !mouseEvent.metaKey) {
+      newClearSelection()
+    }
+  }
+
+  // checkbox 模式走级联选择（子节点联动 + 父节点半选/全选状态），
+  // 其他模式走普通选择
+  const result = props.selectionMode === 'checkbox'
+    ? updateCheckboxSelection(node, true, event.originalEvent, {
+        propagateDown: props.propagateSelectionDown,
+        propagateUp: props.propagateSelectionUp
+      })
+    : newSelectNode(node, true, event.originalEvent)
+
   if (result) {
     if (result.type === 'select') {
       emit('node-select', result.event as TreeNodeSelectEvent)
@@ -561,10 +579,15 @@ const handleNodeSelect = (event: TreeNodeSelectEvent) => {
 
 const handleNodeUnselect = (event: TreeNodeUnselectEvent) => {
   const { node } = event
-  
-  // 使用新的选择管理
-  const result = newSelectNode(node, false, event.originalEvent)
-  
+
+  // checkbox 模式走级联选择
+  const result = props.selectionMode === 'checkbox'
+    ? updateCheckboxSelection(node, false, event.originalEvent, {
+        propagateDown: props.propagateSelectionDown,
+        propagateUp: props.propagateSelectionUp
+      })
+    : newSelectNode(node, false, event.originalEvent)
+
   if (result) {
     if (result.type === 'unselect') {
       emit('node-unselect', result.event as TreeNodeUnselectEvent)
@@ -584,28 +607,23 @@ const handleNodeUnselect = (event: TreeNodeUnselectEvent) => {
 
 // 拖拽事件处理
 const handleNodeDragStart = (event: { originalEvent: DragEvent; node: TreeNodeType }) => {
-  console.log('🚀 handleNodeDragStart:', {
-    nodeLabel: event.node.label,
-    treeId: props.id,
-    crossTreeGroup: props.crossTreeGroup,
-    isDraggable: isDraggable(event.node)
-  })
-  
   if (!isDraggable(event.node)) {
     event.originalEvent.preventDefault()
     return
   }
-  
-  // 启动跨树拖拽管理
-  if (props.id && props.crossTreeGroup) {
+
+  // 启动跨树拖拽管理（只要启用拖拽且有树 ID 就启动，
+  // 此前要求必须设置 crossTreeGroup，导致仅配 dragdropScope 的跨树拖拽完全失效）
+  if (props.id && props.dragdrop) {
     crossTreeManager.startCrossTreeDrag(
       event.node,
       props.id,
-      props.crossTreeGroup
+      props.crossTreeGroup || null,
+      newSelectedNodes.value
     )
     crossTreeManager.setCrossTreeDragData(event.originalEvent.dataTransfer!)
   }
-  
+
   onDragStart(event.originalEvent, event.node)
   emit('node-drag-start', event)
 }
@@ -618,135 +636,164 @@ const handleNodeDragEnd = (event: { originalEvent: DragEvent; node: TreeNodeType
   emit('node-drag-end', event)
 }
 
+// 多选拖拽时所有被拖节点的 key（含主拖拽节点，保持树中顺序）
+const getDraggedKeys = (): Array<string | number> | null => {
+  const selected = dragState.value.selectedNodes || globalDragState.value.selectedNodes
+  return (selected && selected.length > 1) ? selected.map(n => n.key) : null
+}
+
 const handleNodeDrop = (event: TreeNodeDropEvent) => {
+  // 标记用户是否已在事件回调中同步做出 accept/reject 决定
+  //（emit 是同步的，避免"立即接受"与"待确认列表"两条路径重复执行）
+  let dropDecided = false
+
   // 检查是否为跨树拖拽
   const crossTreeInfo = crossTreeManager.getCrossTreeDragInfo()
-  const isCrossTree = crossTreeInfo && crossTreeInfo.sourceTreeId !== props.id
-  
+  const isCrossTree = !!(crossTreeInfo && crossTreeInfo.sourceTreeId !== props.id)
+
   if (isCrossTree && crossTreeInfo) {
     // 跨树拖拽处理
     const canDrop = crossTreeManager.canCrossTreeDrop(
       props.id!,
       props.crossTreeGroup || null
     )
-    
+
     if (!canDrop) {
-      console.log('❌ 跨树拖拽验证失败')
       return
     }
-    
-    // 执行跨树拖拽
-    const result = crossTreeManager.performCrossTreeDrop(
-      props.id!,
-      event.dropNode,
-      event.dropPosition || 'inside'
-    )
-    
-    if (result) {
-      // 从 crossTreeManager 获取拖拽信息
-      const dragInfo = crossTreeManager.getCrossTreeDragInfo()
-      
-      if (dragInfo) {
-        // 触发简化的跨树移动事件
-        emit('cross-tree-move', {
-          originalEvent: event.originalEvent,
-          dragNode: dragInfo.dragNode,
-          dropNode: event.dropNode,
-          dropPosition: event.dropPosition || 'inside',
-          sourceTreeId: dragInfo.sourceTreeId,
-          targetTreeId: props.id!
-        })
-      }
+
+    // 组装事件信息
+    event.dragNode = crossTreeInfo.dragNode
+    event.dropPosition = event.dropPosition || dropPosition.value || 'inside'
+    event.sourceTreeId = crossTreeInfo.sourceTreeId!
+    event.targetTreeId = props.id
+    event.isCrossTree = true
+
+    // accept/reject 在手动与自动模式下语义一致：接受即移动数据、发射结束事件；
+    // crossTreeAutoUpdate 只决定组件是否自动调用 accept()
+    event.accept = () => {
+      dropDecided = true
+      const moved = crossTreeManager.performCrossTreeDrop(
+        props.id!,
+        event.dropNode,
+        event.dropPosition
+      )
+      emit('cross-tree-drag-end', {
+        originalEvent: event.originalEvent,
+        dragNode: event.dragNode,
+        sourceTreeId: crossTreeInfo.sourceTreeId!,
+        targetTreeId: props.id,
+        dropNode: event.dropNode,
+        dropPosition: event.dropPosition,
+        isCrossTree: true,
+        timestamp: Date.now(),
+        success: moved,
+        ...(moved ? {} : { error: 'Cross-tree move failed' })
+      } as CrossTreeDragEndEvent)
+      resetDragState()
     }
-    
+    event.reject = () => {
+      dropDecided = true
+      emit('cross-tree-drag-end', {
+        originalEvent: event.originalEvent,
+        dragNode: event.dragNode,
+        sourceTreeId: crossTreeInfo.sourceTreeId!,
+        targetTreeId: props.id,
+        dropNode: event.dropNode,
+        dropPosition: event.dropPosition,
+        isCrossTree: true,
+        timestamp: Date.now(),
+        success: false,
+        error: 'Drop rejected'
+      } as CrossTreeDragEndEvent)
+      resetDragState()
+    }
+
+    // node-drop 与 cross-tree-drop 使用同一个带真实回调的事件对象
+    //（此前跨树分支直接 return，外部永远收不到 node-drop）
+    emit('node-drop', event)
+    emit('cross-tree-drop', {
+      ...event,
+      timestamp: Date.now()
+    } as CrossTreeDropEvent)
+
+    // 自动更新模式自动接受；手动模式下若用户在事件回调中未做决定，则加入待确认列表
+    if (props.crossTreeAutoUpdate) {
+      event.accept()
+    } else if (!dropDecided) {
+      addToPendingOperations(event)
+    }
     return
   }
-  
-  // 同树拖拽处理（保持原有逻辑）
+
+  // 同树拖拽处理
   const currentDragNode = dragNode.value
   const currentDropPosition = dropPosition.value || 'inside'
-  
+
   if (!currentDragNode || !isDroppable(event.dropNode)) {
-    console.log('❌ 同树拖拽验证失败')
     return
   }
-  
+
   // 设置拖拽节点信息
   event.dragNode = currentDragNode
   event.dropPosition = currentDropPosition
   event.sourceTreeId = props.id
   event.targetTreeId = props.id
   event.isCrossTree = false
-  
+
   // 验证拖拽
   if (props.validateDrop) {
     let isValid = true
-    
+
     // 不能拖拽到自己或子节点
     if (event.dragNode.key === event.dropNode.key) {
       isValid = false
     }
-    
+
     // 检查是否拖拽到子节点
     if (isValid && isDescendant(event.dropNode, event.dragNode)) {
       isValid = false
     }
-    
+
     if (!isValid) {
       return
     }
   }
-  
-  // 设置接受拖拽的回调
+
+  // accept：手动/自动模式语义一致——接受即移动数据（多选时移动所有选中节点）；
+  // autoUpdate 只决定组件是否自动调用 accept()
   event.accept = () => {
-    // 同树拖拽：自动更新模式处理数据更新
-    if (props.autoUpdate) {
-      try {
-        // 使用 moveTreeNode 更新数据
-        const updatedData = moveTreeNode(
-          props.value,
-          event.dragNode.key,
-          event.dropNode.key,
-          event.dropPosition
-        )
-        
-        // 触发 update:value 事件更新父组件数据
-        emit('update:value', updatedData)
-          
-        // 等待下一个 tick 确保数据更新完成
-        nextTick(() => {
-          // 清理拖拽状态
-          onDrop(event.originalEvent, event.dropNode)
-          
-          // 重置拖拽状态
-          resetDragState()
-        })
-      } catch (error) {
-        console.error('自动更新数据失败:', error)
-        
-        // 即使出错也要清理状态
-        onDrop(event.originalEvent, event.dropNode)
-        resetDragState()
-      }
-    } else {
-      // 非自动更新模式：添加到待确认操作列表
-      addToPendingOperations(event)
+    dropDecided = true
+    try {
+      const draggedKeys = getDraggedKeys()
+      const updatedData = draggedKeys
+        ? moveTreeNodes(props.value, draggedKeys, event.dropNode.key, event.dropPosition)
+        : moveTreeNode(props.value, event.dragNode.key, event.dropNode.key, event.dropPosition)
+
+      // 触发 update:value 事件更新父组件数据
+      emit('update:value', updatedData)
+    } catch (error) {
+      console.error('自动更新数据失败:', error)
+    } finally {
+      resetDragState()
     }
   }
-  
+
   // 设置拒绝拖拽的回调
   event.reject = () => {
+    dropDecided = true
     // 拒绝拖拽：直接清理状态，不更新数据
-    onDrop(event.originalEvent, event.dropNode)
     resetDragState()
   }
-  
+
   // 触发拖拽事件
   emit('node-drop', event)
-  
-  // 自动更新模式：自动接受拖拽操作
+
+  // 自动更新模式自动接受；手动模式下若用户未做决定，则加入待确认列表
   if (props.autoUpdate) {
     event.accept()
+  } else if (!dropDecided) {
+    addToPendingOperations(event)
   }
 }
 
@@ -809,42 +856,65 @@ const handleRootDrop = (event: DragEvent) => {
   if (allowRootDrop) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     // 获取正确的拖拽信息（优先使用全局状态，用于跨树拖拽）
     const currentDragNode = dragNode.value || globalDragState.value.dragNode
     const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
     const targetTreeId = props.id
-    const isCrossTree = sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId
-    
+    const isCrossTree = !!(sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId)
+
+    // 跨树根级别放置也需要通过组名校验
+    if (isCrossTree && !crossTreeManager.canCrossTreeDrop(props.id!, props.crossTreeGroup || null)) {
+      return
+    }
+
+    const rootNode: TreeNodeType = {
+      key: '__root__',
+      label: 'Root',
+      children: props.value || []
+    }
+
+    let dropDecided = false
+
     // 创建根级别拖拽事件
     const dropEvent: TreeNodeDropEvent = {
       originalEvent: event,
-      dragNode: currentDragNode,
-      dropNode: {
-        key: '__root__',
-        label: 'Root',
-        children: props.value || []
-      },
+      dragNode: currentDragNode!,
+      dropNode: rootNode,
       dropIndex: (props.value || []).length, // 添加到末尾
       dropPosition: 'root',
       sourceTreeId,
       targetTreeId,
       isCrossTree,
       accept: () => {
-        onDrop(event, {
-          key: '__root__',
-          label: 'Root',
-          children: props.value || []
-        })
+        dropDecided = true
+        // accept 必须真正移动数据（此前只清理状态，根级别放置永远不生效）
+        if (isCrossTree) {
+          crossTreeManager.performCrossTreeDrop(props.id!, rootNode, 'root')
+        } else {
+          const draggedKeys = getDraggedKeys()
+          const updatedData = draggedKeys
+            ? moveTreeNodes(props.value, draggedKeys, '__root__', 'root')
+            : moveTreeNode(props.value, currentDragNode!.key, '__root__', 'root')
+          emit('update:value', updatedData)
+        }
         resetDragState()
       },
       reject: () => {
+        dropDecided = true
         // 拒绝拖拽：直接清理状态，不更新数据
         resetDragState()
       }
     }
-    
+
     emit('node-drop', dropEvent)
+
+    // 自动更新模式自动接受；手动模式下若用户未做决定，则加入待确认列表
+    if ((props.autoUpdate && !isCrossTree) || (props.crossTreeAutoUpdate && isCrossTree)) {
+      dropEvent.accept()
+    } else if (!dropDecided) {
+      addToPendingOperations(dropEvent)
+    }
   }
   // 否则让事件继续传播给TreeNode处理
 }
@@ -936,43 +1006,61 @@ const handleEmptyDrop = (event: DragEvent) => {
   // 获取正确的拖拽信息（优先使用全局状态，用于跨树拖拽）
   const sourceTreeId = dragState.value.sourceTreeId || globalDragState.value.sourceTreeId
   const targetTreeId = props.id
-  const isCrossTree = sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId
-  
+  const isCrossTree = !!(sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId)
+
+  // 跨树放置到空树也需要通过组名校验
+  if (isCrossTree && !crossTreeManager.canCrossTreeDrop(props.id!, props.crossTreeGroup || null)) {
+    return
+  }
+
+  const rootNode: TreeNodeType = {
+    key: '__root__',
+    label: 'Root',
+    children: props.value || []
+  }
+
+  let dropDecided = false
+
   // 创建空树拖拽事件
   const dropEvent: TreeNodeDropEvent = {
     originalEvent: event,
-    dragNode: currentDragNode,
-    dropNode: {
-      key: '__root__',
-      label: 'Root',
-      children: props.value || []
-    },
-    dropIndex: 0, // 添加到开头
+    dragNode: currentDragNode!,
+    dropNode: rootNode,
+    dropIndex: 0,
     dropPosition: 'root',
     sourceTreeId,
     targetTreeId,
     isCrossTree,
     accept: () => {
-      onDrop(event, {
-        key: '__root__',
-        label: 'Root',
-        children: props.value || []
-      })
+      dropDecided = true
+      // accept 必须真正移动数据（此前只清理状态，空树放置永远不生效）
+      if (isCrossTree) {
+        crossTreeManager.performCrossTreeDrop(props.id!, rootNode, 'root')
+      } else {
+        const draggedKeys = getDraggedKeys()
+        const updatedData = draggedKeys
+          ? moveTreeNodes(props.value, draggedKeys, '__root__', 'root')
+          : moveTreeNode(props.value, currentDragNode!.key, '__root__', 'root')
+        emit('update:value', updatedData)
+      }
       resetDragState()
       isDragOverContainer.value = false
     },
     reject: () => {
+      dropDecided = true
       // 拒绝拖拽：直接清理状态，不更新数据
       resetDragState()
       isDragOverContainer.value = false
     }
   }
-  
+
   emit('node-drop', dropEvent)
-  
-  // 自动更新模式：自动接受拖拽操作
+
+  // 自动更新模式自动接受；手动模式下若用户未做决定，则加入待确认列表
   if ((props.autoUpdate && !isCrossTree) || (props.crossTreeAutoUpdate && isCrossTree)) {
     dropEvent.accept()
+  } else if (!dropDecided) {
+    addToPendingOperations(dropEvent)
   }
 }
 
@@ -1018,25 +1106,49 @@ const handleEmptyDragLeave = (event: DragEvent) => {
 // 键盘事件处理
 const handleTreeKeyDown = (event: KeyboardEvent) => {
   const result = handleKeyDown(event)
-  
-  if (result) {
-    if ('type' in result && result.type === 'activate' && result.node) {
-      // 处理激活事件（Enter/Space）
+
+  if (!result || !('type' in result)) return
+
+  if (result.type === 'activate' && result.node) {
+    // 处理激活事件（Enter/Space）：文件夹切换展开，叶子触发选择
+    const hasChildren = !!(result.node.children && result.node.children.length > 0)
+    if (hasChildren) {
+      handleNodeToggle({
+        originalEvent: event,
+        node: result.node
+      } as TreeNodeExpandEvent)
+    } else {
       const selectEvent: TreeNodeSelectEvent = {
         originalEvent: event,
         node: result.node
       }
       handleNodeSelect(selectEvent)
-    } else if ('focusEvent' in result || 'blurEvent' in result) {
-      // 处理焦点变化事件
-      const focusResult = result as { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null }
-      if (focusResult.focusEvent) {
-        emit('node-focus', focusResult.focusEvent)
-      }
-      
-      if (focusResult.blurEvent) {
-        emit('node-blur', focusResult.blurEvent)
-      }
+    }
+    return
+  }
+
+  if (result.type === 'expand' && result.node) {
+    expandNode(result.node)
+    emit('node-expand', { originalEvent: event, node: result.node } as TreeNodeExpandEvent)
+    emit('update:expandedKeys', { ...expandedKeys.value })
+    return
+  }
+
+  if (result.type === 'collapse' && result.node) {
+    // 使用 set 语义而非 toggle，避免状态相反
+    expandNode(result.node, false)
+    emit('node-collapse', { originalEvent: event, node: result.node } as TreeNodeCollapseEvent)
+    emit('update:expandedKeys', { ...expandedKeys.value })
+    return
+  }
+
+  if (result.type === 'navigate') {
+    // 处理焦点变化事件
+    if (result.focusEvent) {
+      emit('node-focus', result.focusEvent)
+    }
+    if (result.blurEvent) {
+      emit('node-blur', result.blurEvent)
     }
   }
 }
@@ -1056,10 +1168,6 @@ const handleFilterInput = () => {
 }
 
 // 工具函数
-const unselectNode = (node: TreeNodeType) => {
-  selectNode(node, false)
-}
-
 const findNodeByKey = (nodes: TreeNodeType[], key: string | number): TreeNodeType | null => {
   for (const node of nodes) {
     if (node.key === key) return node
@@ -1069,28 +1177,6 @@ const findNodeByKey = (nodes: TreeNodeType[], key: string | number): TreeNodeTyp
     }
   }
   return null
-}
-
-const propagateSelectionDown = (node: TreeNodeType, selected: boolean) => {
-  if (!node.children) return
-  
-  for (const child of node.children) {
-    if (child.selectable !== false) {
-      if (selected) {
-        selectNode(child)
-      } else {
-        unselectNode(child)
-      }
-      
-      // 递归处理子节点
-      propagateSelectionDown(child, selected)
-    }
-  }
-}
-
-const propagateSelectionUp = (node: TreeNodeType) => {
-  // 查找父节点并更新选择状态
-  // 这需要维护父子关系映射
 }
 
 const isDescendant = (ancestor: TreeNodeType, descendant: TreeNodeType): boolean => {
@@ -1110,12 +1196,14 @@ const isDescendant = (ancestor: TreeNodeType, descendant: TreeNodeType): boolean
 }
 
 // 公共方法
-const getSelectedNodes = () => {
-  return selectedNodes.value
-}
-
 const getExpandedNodes = () => {
   return expandedNodes.value
+}
+
+// 重置全部状态（选择 + 展开），统一走 useSelection 与 useTreeState
+const resetState = () => {
+  resetTreeState()
+  newClearSelection()
 }
 
 // PendingOperations 相关函数
@@ -1146,51 +1234,32 @@ const addToPendingOperations = (event: TreeNodeDropEvent | CrossTreeDropEvent) =
       description: generateOperationDescription(event)
     },
     
-    // 操作回调
+    // 操作回调：直接复用 drop 事件上的真实 accept/reject（移动数据 + 清理状态）
     accept: () => {
-      console.log('✅ 接受待确认操作:', operation.description)
-      
+
       try {
-        if (event.isCrossTree) {
-          // 跨树拖拽处理
-          performCrossTreeMove(event as CrossTreeDropEvent)
-        } else {
-          // 同树拖拽处理
-          performSameTreeMove(event as TreeNodeDropEvent)
-        }
-        
-        // 从待确认列表中移除
-        removePendingOperation(operation.id)
-        
-        // 清理拖拽状态
-        onDrop(event.originalEvent, event.dropNode)
-        resetDragState()
-        
-        console.log('✅ 操作执行成功')
+        event.accept()
       } catch (error) {
         console.error('❌ 操作执行失败:', error)
-        
-        // 即使失败也要清理状态
-        removePendingOperation(operation.id)
-        onDrop(event.originalEvent, event.dropNode)
         resetDragState()
+      } finally {
+        // 从待确认列表中移除
+        removePendingOperation(operation.id)
       }
     },
-    
+
     reject: () => {
-      console.log('❌ 拒绝待确认操作:', operation.description)
-      
-      // 从待确认列表中移除
-      removePendingOperation(operation.id)
-      
-      // 清理拖拽状态
-      onDrop(event.originalEvent, event.dropNode)
-      resetDragState()
+
+      try {
+        event.reject()
+      } finally {
+        // 从待确认列表中移除
+        removePendingOperation(operation.id)
+      }
     }
   }
   
   pendingOperations.value.push(operation)
-  console.log('📝 添加待确认操作:', operation.description)
 }
 
 const removePendingOperation = (operationId: string) => {
@@ -1209,12 +1278,13 @@ const rejectOperation = (operation: PendingOperation) => {
 }
 
 const clearAllPendingOperations = () => {
-  // 拒绝所有待确认操作
-  pendingOperations.value.forEach(operation => {
+  // 拒绝所有待确认操作（先复制列表：reject 会从原列表中移除条目，
+  // 边遍历边 splice 会跳过元素）
+  const operations = [...pendingOperations.value]
+  operations.forEach(operation => {
     operation.reject()
   })
   pendingOperations.value = []
-  console.log('🧹 清除所有待确认操作')
 }
 
 const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEvent): string => {
@@ -1277,24 +1347,6 @@ const generateOperationDescription = (event: TreeNodeDropEvent | CrossTreeDropEv
         })
     }
   }
-}
-
-const performCrossTreeMove = (event: CrossTreeDropEvent) => {
-  // 触发跨树拖拽事件，让父组件处理数据更新
-  emit('cross-tree-drop', event)
-}
-
-const performSameTreeMove = (event: TreeNodeDropEvent) => {
-  // 使用 moveTreeNode 更新数据
-  const updatedData = moveTreeNode(
-    props.value,
-    event.dragNode.key,
-    event.dropNode.key,
-    event.dropPosition
-  )
-  
-  // 触发 update:value 事件更新父组件数据
-  emit('update:value', updatedData)
 }
 
 const findParentNode = (nodes: TreeNodeType[], targetNode: TreeNodeType): TreeNodeType | null => {
@@ -1437,25 +1489,14 @@ provide('tree', {
 })
 
 // 监听器
-watch(() => props.value, (newValue) => {
-  if (newValue) {
-    resetState()
-  }
-}, { deep: true })
+// 注意：不要深度监听 props.value 后重置状态——任何嵌套属性变化（拖拽移动、
+// 懒加载写入 loading、外部改 label）都会把整棵树的选中和展开状态清空
 
+// expandedKeys 外部受控时直接整体同步（set 语义；
+// 此前用 toggle 模拟 collapse，节点已折叠且 prop 为 false 时会被反向展开）
 watch(() => props.expandedKeys, (newKeys) => {
   if (newKeys) {
-    // 同步展开状态
-    Object.keys(newKeys).forEach(key => {
-      const node = findNodeByKey(props.value || [], key)
-      if (node) {
-        if (newKeys[key]) {
-          expandNode(node)
-        } else {
-          collapseNode(node)
-        }
-      }
-    })
+    setExpandedKeys({ ...newKeys })
   }
 }, { deep: true })
 

@@ -314,6 +314,56 @@
   font-weight: 500;
 }
 
+/* 节点操作按钮：默认隐藏，悬停或聚焦时显示 */
+.p-tree-node-actions {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.p-tree-node-content:hover .p-tree-node-actions,
+.p-tree-node-content:focus-within .p-tree-node-actions {
+  display: inline-flex;
+}
+
+.p-tree-node-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.25rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.p-tree-node-action:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+}
+
+.p-tree-node-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.p-tree-node-action-danger {
+  color: #dc2626;
+}
+
+.p-tree-node-action-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+}
+
 /* 子节点容器 */
 .p-tree-node-children {
   list-style: none;

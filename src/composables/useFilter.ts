@@ -15,12 +15,13 @@ export function useFilter(
   nodes: Ref<TreeNode[]>,
   filterConfig: Partial<TreeFilterConfig> = {}
 ): UseFilterReturn {
-  // 过滤配置
-  const config = ref<TreeFilterConfig>({
+  // 过滤配置（保留初始配置快照，resetFilter 时恢复而不是硬编码默认值）
+  const initialConfig: TreeFilterConfig = {
     mode: filterConfig.mode || 'lenient',
     field: filterConfig.field || 'label',
     matchCase: filterConfig.matchCase || false
-  })
+  }
+  const config = ref<TreeFilterConfig>({ ...initialConfig })
 
   // 过滤状态
   const filterValue = ref('')
@@ -32,20 +33,12 @@ export function useFilter(
       return nodes.value
     }
 
-    isFiltering.value = true
-    
-    try {
-      const filtered = filterTreeNodes(
-        nodes.value,
-        filterValue.value,
-        config.value.field,
-        config.value.mode
-      )
-      
-      return filtered
-    } finally {
-      isFiltering.value = false
-    }
+    return filterTreeNodes(
+      nodes.value,
+      filterValue.value,
+      config.value.field,
+      config.value.mode
+    )
   })
 
   const hasFilter = computed(() => {
@@ -90,10 +83,12 @@ export function useFilter(
 
   // 过滤方法
   const setFilter = (value: string) => {
+    isFiltering.value = !!value.trim()
     filterValue.value = value
   }
 
   const clearFilter = () => {
+    isFiltering.value = false
     filterValue.value = ''
   }
 
@@ -133,11 +128,11 @@ export function useFilter(
             })
           }
         } else {
-          // 严格模式：只显示匹配的节点
-          if (nodeMatches) {
+          // 严格模式：保留匹配节点及其祖先路径，隐藏未匹配的兄弟/子节点
+          if (nodeMatches || filteredChildren.length > 0) {
             result.push({
               ...node,
-              children: node.children
+              children: filteredChildren.length > 0 ? filteredChildren : undefined
             })
           }
         }
@@ -233,11 +228,8 @@ export function useFilter(
   // 重置过滤器
   const resetFilter = () => {
     filterValue.value = ''
-    config.value = {
-      mode: 'lenient',
-      field: 'label',
-      matchCase: false
-    }
+    isFiltering.value = false
+    config.value = { ...initialConfig }
   }
 
   // 监听器

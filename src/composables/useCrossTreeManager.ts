@@ -4,13 +4,15 @@
  */
 
 import { ref, reactive, computed } from 'vue'
-import type { TreeNode, TreeDropPosition } from '../lib/types'
-import { moveCrossTreeNode } from '../lib/utils'
+import type { TreeNode, TreeDropPosition, CrossTreeDataProvider } from '../lib/types'
+import { moveCrossTreeNode, moveCrossTreeNodes } from '../lib/utils'
 
 // 全局跨树拖拽状态
 interface CrossTreeState {
   /** 当前拖拽的节点 */
   dragNode: TreeNode | null
+  /** 多选拖拽时所有选中的节点（含 dragNode） */
+  selectedNodes: TreeNode[] | null
   /** 源树ID */
   sourceTreeId: string | null
   /** 源树组名 */
@@ -33,11 +35,14 @@ interface TreeInstance {
   updateData: (data: TreeNode[]) => void
   /** 触发事件的方法 */
   emit: (event: string, ...args: any[]) => void
+  /** 可选的跨树数据提供者（提供时优先于 dataRef/updateData） */
+  dataProvider?: CrossTreeDataProvider
 }
 
 // 全局状态
 const globalState = reactive<CrossTreeState>({
   dragNode: null,
+  selectedNodes: null,
   sourceTreeId: null,
   sourceGroup: null,
   startTime: null,
@@ -60,17 +65,18 @@ export function useCrossTreeManager() {
     group: string | null,
     dataRef: any,
     updateData: (data: TreeNode[]) => void,
-    emit: (event: string, ...args: any[]) => void
+    emit: (event: string, ...args: any[]) => void,
+    dataProvider?: CrossTreeDataProvider
   ) => {
     treeInstances.set(id, {
       id,
       group,
       dataRef,
       updateData,
-      emit
+      emit,
+      dataProvider
     })
-    
-    console.log(`🌲 注册树实例: ${id}, 组: ${group || '无'}`)
+
   }
   
   /**
@@ -78,7 +84,6 @@ export function useCrossTreeManager() {
    */
   const unregisterTree = (id: string) => {
     treeInstances.delete(id)
-    console.log(`🗑️ 注销树实例: ${id}`)
   }
   
   /**
@@ -87,15 +92,16 @@ export function useCrossTreeManager() {
   const startCrossTreeDrag = (
     dragNode: TreeNode,
     sourceTreeId: string,
-    sourceGroup: string | null
+    sourceGroup: string | null,
+    selectedNodes?: TreeNode[] | null
   ) => {
     globalState.dragNode = dragNode
+    globalState.selectedNodes = selectedNodes && selectedNodes.length > 1 ? selectedNodes : null
     globalState.sourceTreeId = sourceTreeId
     globalState.sourceGroup = sourceGroup
     globalState.startTime = Date.now()
     globalState.isDragging = true
     
-    console.log(`🚀 开始跨树拖拽: ${dragNode.label} 从 ${sourceTreeId}`)
     
     // 在 dataTransfer 中设置跨树拖拽信息
     if (typeof window !== 'undefined') {
@@ -114,6 +120,7 @@ export function useCrossTreeManager() {
    */
   const endCrossTreeDrag = () => {
     globalState.dragNode = null
+    globalState.selectedNodes = null
     globalState.sourceTreeId = null
     globalState.sourceGroup = null
     globalState.startTime = null
@@ -124,7 +131,6 @@ export function useCrossTreeManager() {
       delete (window as any).__crossTreeDragData
     }
     
-    console.log(`🏁 结束跨树拖拽`)
   }
   
   /**
@@ -139,14 +145,10 @@ export function useCrossTreeManager() {
     if (globalState.sourceTreeId === targetTreeId) {
       return false
     }
-    
-    // 检查组名匹配
-    if (globalState.sourceGroup && targetGroup) {
-      return globalState.sourceGroup === targetGroup
-    }
-    
-    // 如果没有组名限制，允许跨树拖拽
-    return true
+
+    // 组名必须匹配（含双方都未设置的情况）；仅一方设置组名时拒绝，
+    // 否则有组隔离的树会被任意无组树突破
+    return globalState.sourceGroup === targetGroup
   }
   
   /**
@@ -170,33 +172,42 @@ export function useCrossTreeManager() {
       return false
     }
     
+    // 读取/写回数据时优先使用 CrossTreeDataProvider，否则用注册的响应式引用
+    const getData = (tree: TreeInstance): TreeNode[] => {
+      if (tree.dataProvider) {
+        return tree.dataProvider.getTreeData(tree.id) || []
+      }
+      return tree.dataRef.value || []
+    }
+    const setData = (tree: TreeInstance, data: TreeNode[]) => {
+      if (tree.dataProvider) {
+        tree.dataProvider.updateTreeData(tree.id, data)
+      } else {
+        tree.updateData(data)
+      }
+    }
+
     try {
       // 获取当前数据
-      const sourceData = sourceTree.dataRef.value || []
-      const targetData = targetTree.dataRef.value || []
-      
-      console.log('🔄 执行跨树数据移动:', {
-        dragNode: globalState.dragNode.label,
-        dropNode: dropNode.label,
-        dropPosition,
-        sourceTreeId: globalState.sourceTreeId,
-        targetTreeId
-      })
-      
+      const sourceData = getData(sourceTree)
+      const targetData = getData(targetTree)
+
+      // 多选拖拽时移动所有选中节点，否则只移动拖拽节点
+      const dragKeys = (globalState.selectedNodes && globalState.selectedNodes.length > 1)
+        ? globalState.selectedNodes.map(n => n.key)
+        : [globalState.dragNode.key]
+
+
       // 执行数据移动
-      const result = moveCrossTreeNode(
-        sourceData,
-        targetData,
-        globalState.dragNode.key,
-        dropNode.key,
-        dropPosition
-      )
-      
+      const result = dragKeys.length > 1
+        ? moveCrossTreeNodes(sourceData, targetData, dragKeys, dropNode.key, dropPosition)
+        : moveCrossTreeNode(sourceData, targetData, dragKeys[0], dropNode.key, dropPosition)
+
       if (result.success) {
         // 更新两个树的数据
-        sourceTree.updateData(result.sourceNodes)
-        targetTree.updateData(result.targetNodes)
-        
+        setData(sourceTree, result.sourceNodes)
+        setData(targetTree, result.targetNodes)
+
         // 触发跨树移动事件
         const moveEvent = {
           dragNode: globalState.dragNode,
@@ -214,7 +225,6 @@ export function useCrossTreeManager() {
         sourceTree.emit('cross-tree-move', moveEvent)
         targetTree.emit('cross-tree-move', moveEvent)
         
-        console.log('✅ 跨树拖拽成功')
         return true
       } else {
         console.error('❌ 跨树数据移动失败')

@@ -43,6 +43,26 @@ export interface TreeNode {
   style?: Record<string, any>;
 }
 
+// 节点操作按钮定义（参考 Element Plus Tree 的节点操作模式）
+export interface TreeNodeAction {
+  /** 操作唯一标识 */
+  key: string;
+  /** 按钮文本（未提供 icon 时显示） */
+  label?: string;
+  /** 按钮图标（组件或图标类名） */
+  icon?: string | Component;
+  /** 按钮提示文本（title 属性） */
+  title?: string;
+  /** 是否为危险操作（红色样式） */
+  danger?: boolean;
+  /** 是否禁用（布尔或按节点计算） */
+  disabled?: boolean | ((node: TreeNode) => boolean);
+  /** 是否可见（布尔或按节点计算，默认可见） */
+  visible?: boolean | ((node: TreeNode) => boolean);
+  /** 点击回调；点击不会触发节点选中/展开/拖拽 */
+  onClick: (node: TreeNode, event: MouseEvent) => void;
+}
+
 // 复选框选择状态
 export interface TreeCheckboxSelectionKeys {
   /** 是否选中 */
@@ -95,10 +115,11 @@ export interface TreeNodeBlurEvent {
 }
 
 // 键盘处理结果类型
-export type KeyboardHandleResult = 
-  | { blurEvent: TreeNodeBlurEvent | null; focusEvent: TreeNodeFocusEvent | null }
+export type KeyboardHandleResult =
+  | { type: 'navigate'; event: KeyboardEvent; focusEvent?: TreeNodeFocusEvent | null; blurEvent?: TreeNodeBlurEvent | null }
   | { type: 'activate'; node: TreeNode; event: KeyboardEvent }
-  | { type: 'navigate'; event: KeyboardEvent }
+  | { type: 'expand'; node: TreeNode; event: KeyboardEvent }
+  | { type: 'collapse'; node: TreeNode; event: KeyboardEvent }
   | null
 
 export interface TreeNodeClickEvent {
@@ -396,6 +417,8 @@ export interface TreeState {
 export interface DragDropState {
   /** 被拖拽的节点 */
   dragNode: TreeNode | null;
+  /** 多选拖拽时所有选中的节点（含 dragNode） */
+  selectedNodes?: TreeNode[] | null;
   /** 拖拽目标节点 */
   dropNode: TreeNode | null;
   /** 拖拽位置 */
@@ -500,6 +523,8 @@ export interface TreeProps {
   style?: Record<string, any>;
   /** 树组件配置 */
   config?: Partial<TreeConfig>;
+  /** 节点操作按钮（显示在节点右侧，悬停可见）；也可用 #actions 插槽完全自定义 */
+  nodeActions?: TreeNodeAction[];
 }
 
 // 组件事件接口
@@ -708,7 +733,12 @@ export interface UseSelectionReturn {
   selectMultipleNodes: (nodes: TreeNode[], event?: Event) => any;
   clearSelection: () => any;
   selectAll: () => any;
-  updateCheckboxSelection: (node: TreeNode, checked: boolean, event?: Event) => any;
+  updateCheckboxSelection: (
+    node: TreeNode,
+    checked: boolean,
+    event?: Event,
+    options?: { propagateDown?: boolean; propagateUp?: boolean }
+  ) => any;
   
   // 状态检查
   isSelected: (node: TreeNode) => boolean;

@@ -61,6 +61,7 @@ export {
   removeTreeNode,
   updateTreeNode,
   moveTreeNode,
+  moveTreeNodes,
   isNodeSelected,
   isNodePartiallySelected,
   updateSelectionKeys,
@@ -78,6 +79,7 @@ export {
   removeNodeFromTree,
   addNodeToTree,
   moveCrossTreeNode,
+  moveCrossTreeNodes,
   canCrossTreeDrop,
   formatCrossTreeDragInfo,
   getCrossTreeSampleData
@@ -203,7 +205,7 @@ export function createTreePlugin(options?: TreePluginOptions) {
 }
 
 // 版本信息
-export const version = '1.0.0'
+export const version = '1.4.3'
 
 // 插件信息
 export const pluginInfo = {

@@ -13,6 +13,29 @@
 
 本项目采用 [MIT 协议](./LICENSE) 开源，您可以自由使用、修改和分发本项目。
 
+## 🆕 v1.5.0 预览（开发中，未发布）
+
+### 🎯 节点操作按钮（Issue #4）
+- **新增 `nodeActions` 属性** - 参考 Element Plus Tree 的节点操作模式，可在每个节点右侧添加操作按钮（如"添加"/"删除"），悬停时显示
+- **新增 `#actions` 插槽** - 完全自定义节点操作区域，点击不会触发选中/展开/拖拽
+- 支持图标/文本按钮、危险操作样式、`visible`/`disabled` 按节点动态计算
+
+### 🐛 大规模 bug 修复（28 项）
+- **数据保护** - 修复拖拽目标失效时节点被静默删除、数据变化导致选择/展开状态被清空的问题
+- **跨树拖拽** - 修复根级别/空树放置失败、`crossTreeAutoUpdate` 手动模式失效、`crossTreeDataProvider` 未生效、重复/矛盾的结束事件、多选拖拽只移动一项等问题
+- **checkbox 选择** - 修复 3 层以上级联状态错误、`selectAll` 不更新父节点、`clearSelection` 事件为空、v-model 不同步等问题
+- **v-model:expandedKeys** - 修复双向绑定完全失效（`update:expandedKeys` 从未发射）
+- **键盘导航** - 修复焦点管理完全不可用的问题，支持文件夹聚焦与 ←/→ 展开折叠
+- **过滤功能** - 修复 `filterMode`/`filterBy` 未接线、搜索结果丢失层级结构的问题
+
+### 🏗️ 工程化与质量提升
+- **单元测试与 CI** - 新增 Vitest 单元测试（40+ 断言，覆盖数据操作、checkbox 级联、过滤、节点操作按钮）与 GitHub Actions CI
+- **依赖瘦身** - 移除 `clsx`/`tailwind-merge`/`vue-router` 运行时依赖（产物 gzip 由 32.5KB 降至约 25KB）
+- **SSR 修复** - 主题管理器不再在模块加载时访问 DOM，无 DOM 环境可直接导入
+- **props 补齐** - `propagateSelectionUp`/`propagateSelectionDown`/`metaKeySelection` 从"声明未实现"变为真实生效
+- **内部收敛** - 选择状态统一由 `useSelection` 管理，移除 85 处调试日志与死代码
+
+
 ## 🆕 v1.4.3 更新亮点
 
 ### 🔍 拖拽功能调试和诊断增强
@@ -78,6 +101,7 @@
 - **过滤搜索** - 内置过滤器，支持自定义过滤逻辑，搜索性能优异
 
 ### 高级功能
+- **节点操作按钮** - 参考 Element Plus Tree，支持在每个节点右侧添加操作按钮（悬停显示），声明式 `nodeActions` 或 `#actions` 插槽完全自定义
 - **跨树拖拽自动更新** - 全新的自动更新模式，支持多个树组件之间的智能数据同步
 - **CrossTreeDataProvider 接口** - 灵活的数据提供者模式，支持自定义数据源和更新逻辑
 - **全局状态管理** - useCrossTreeDragState 提供一致的跨组件状态管理
@@ -91,8 +115,8 @@
 - **TypeScript 完全支持** - 100% TypeScript 编写，完整的类型安全支持，零类型错误
 - **生产就绪** - 经过严格测试，44个构建错误全部修复，稳定可靠
 - **Tree Shaking** - 支持按需引入，优化包体积，生产构建自动优化
-- **SSR 友好** - 支持服务端渲染，同构应用兼容
-- **零外部依赖** - 除 Vue 3 外无其他依赖，减少包体积和潜在冲突
+- **SSR 友好** - 支持服务端渲染，无 DOM 环境下导入不报错，同构应用兼容
+- **轻量依赖** - 运行时仅依赖 Vue 3 与 Lucide 图标库，包体积 gzip 约 25KB
 
 ## 📋 版本信息
 
@@ -140,7 +164,7 @@
 - **包体积**: 优化后的生产构建
 - **Tree Shaking**: ✅ 支持
 - **调试日志**: 生产环境自动移除
-- **依赖**: 零外部依赖 (除 Vue 3)
+- **依赖**: 仅 Vue 3 + Lucide 图标库
 
 ### 质量保证
 - **TypeScript**: 100% 类型安全
@@ -287,6 +311,7 @@ const expandedKeys = ref<TreeExpandedKeys>({})
 | `autoUpdate` | `boolean` | `false` | 同树拖拽时是否自动更新数据源 |
 | `crossTreeAutoUpdate` | `boolean` | `false` | **🆕 v1.4.0** 跨树拖拽时是否自动更新数据源 |
 | `crossTreeDataProvider` | `CrossTreeDataProvider` | `undefined` | **🆕 v1.4.0** 跨树数据提供者，用于获取和更新不同树的数据 |
+| `nodeActions` | `TreeNodeAction[]` | `undefined` | **🆕** 节点操作按钮数组，显示在每个节点右侧（悬停可见），也可用 `#actions` 插槽自定义 |
 | `filter` | `boolean` | `false` | 是否启用过滤功能 |
 | `filterMode` | `'lenient' \| 'strict'` | `'lenient'` | 过滤模式：宽松模式显示匹配节点的父节点，严格模式只显示匹配节点 |
 | `filterBy` | `string` | `'label'` | 过滤字段，指定按哪个字段进行过滤 |
@@ -335,6 +360,38 @@ interface TreeNode {
   style?: Record<string, any> // 自定义样式
 }
 ```
+
+### TreeNodeAction 接口
+
+**🆕** 节点操作按钮的定义（参考 Element Plus Tree 的节点操作模式）：
+
+```typescript
+interface TreeNodeAction {
+  key: string                                              // 操作唯一标识
+  label?: string                                           // 按钮文本（未提供 icon 时显示）
+  icon?: string | Component                                // 按钮图标（组件或图标类名）
+  title?: string                                           // 悬停提示文本
+  danger?: boolean                                         // 危险操作（红色样式）
+  disabled?: boolean | ((node: TreeNode) => boolean)       // 是否禁用
+  visible?: boolean | ((node: TreeNode) => boolean)        // 是否可见（默认可见）
+  onClick: (node: TreeNode, event: MouseEvent) => void     // 点击回调
+}
+```
+
+**注意事项：**
+
+1. 按钮默认隐藏，**悬停或键盘聚焦到节点时显示**
+2. 点击操作按钮**不会**触发节点选中、展开/折叠或拖拽
+3. `visible` 和 `disabled` 支持传入函数，按节点动态计算（例如只对文件夹显示"添加"按钮）
+4. 需要更复杂的操作区域时，使用 `#actions` 插槽完全自定义（见下方插槽文档）
+
+### 插槽 (Slots)
+
+| 插槽 | 作用域参数 | 描述 |
+|------|-----------|------|
+| `#node` | `{ node, level }` | 自定义节点内容（替换默认标签） |
+| `#actions` | `{ node, level }` | **🆕** 自定义节点操作区域（节点右侧，悬停可见） |
+| `#empty` | 无 | 自定义空树状态 |
 
 ### CrossTreeDataProvider 接口
 
@@ -877,6 +934,87 @@ const onNodeLoad = async (event) => {
 </script>
 ```
 
+### 9. 节点操作按钮 🆕
+
+参考 Element Plus Tree 的节点操作模式，在每个节点右侧添加按钮（悬停显示，点击不影响选中/展开/拖拽）。
+
+#### 方式一：声明式 `nodeActions`（推荐）
+
+```vue
+<template>
+  <Tree
+    :value="data"
+    :nodeActions="nodeActions"
+    selectionMode="single"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { Tree } from 'vue3-super-tree'
+import 'vue3-super-tree/style.css'
+
+const data = ref([
+  {
+    key: '1',
+    label: '一级节点',
+    children: [{ key: '1-1', label: '二级节点' }]
+  }
+])
+
+let idSeed = 100
+
+const nodeActions = [
+  {
+    key: 'append',
+    label: '添加',
+    title: '添加子节点',
+    // 只对文件夹显示
+    visible: (node) => !!node.children,
+    onClick: (node) => {
+      if (!node.children) node.children = []
+      node.children.push({ key: `new-${idSeed++}`, label: '新节点' })
+      data.value = [...data.value] // 触发响应式更新
+    }
+  },
+  {
+    key: 'delete',
+    label: '删除',
+    title: '删除节点',
+    danger: true, // 红色危险样式
+    onClick: (node) => {
+      removeNode(data.value, node.key)
+      data.value = [...data.value]
+    }
+  }
+]
+
+const removeNode = (nodes, key) => {
+  const index = nodes.findIndex(n => n.key === key)
+  if (index !== -1) {
+    nodes.splice(index, 1)
+    return
+  }
+  nodes.forEach(n => n.children && removeNode(n.children, key))
+}
+</script>
+```
+
+#### 方式二：`#actions` 插槽（完全自定义）
+
+```vue
+<template>
+  <Tree :value="data">
+    <template #actions="{ node }">
+      <button @click="appendNode(node)">添加</button>
+      <button @click="removeNode(node)">删除</button>
+    </template>
+  </Tree>
+</template>
+```
+
+插槽内的点击已自动阻止冒泡，无需再写 `@click.stop`。
+
 ## 键盘操作
 
 | 按键 | 功能 |
@@ -976,9 +1114,10 @@ import 'vue3-super-tree/style.css'
 
 ### 运行时性能
 
-- **虚拟滚动** - 大数据量时自动启用虚拟滚动
 - **智能更新** - 只更新变化的节点，避免全量重渲染
 - **内存优化** - 及时清理事件监听器和引用
+
+> 说明：虚拟滚动尚未实现（`virtualScrollerOptions` 属性已预留），大数据量场景建议先使用懒加载与分页。
 
 ## 项目结构
 
@@ -1047,9 +1186,8 @@ error TS2742: The inferred type of 'xxx' cannot be named without a reference to 
 
 **解决方案**:
 - 启用懒加载：设置 `lazy="true"`
-- 使用虚拟滚动（如果数据量特别大）
 - 避免在节点模板中使用复杂的计算
-- 考虑分页或分批加载数据
+- 考虑分页或分批加载数据（虚拟滚动规划中）
 
 #### 5. 样式问题
 

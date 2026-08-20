@@ -42,49 +42,64 @@ export interface TreeExpose {
   resetState: () => void
   
   /**
-   * 聚焦到指定节点
-   */
-  focusNode: (node: TreeNode) => void
-  
-  /**
-   * 清除焦点
-   */
-  clearFocus: () => void
-  
-  /**
    * 聚焦到下一个节点
    */
   focusNext: () => void
-  
+
   /**
    * 聚焦到上一个节点
    */
   focusPrevious: () => void
-  
+
   /**
    * 聚焦到第一个节点
    */
   focusFirst: () => void
-  
+
   /**
    * 聚焦到最后一个节点
    */
   focusLast: () => void
-  
+
   /**
-   * 获取当前聚焦的节点
+   * 获取当前聚焦节点的 key
    */
-  getFocusedNode: () => TreeNode | null
-  
+  getCurrentFocusedNodeKey: () => string | number | null
+
+  /**
+   * 重置拖拽状态
+   */
+  resetDragState: () => void
+
   /**
    * 发出节点拖拽开始事件
    */
   emitNodeDragFrom: (event: any) => void
-  
+
   /**
    * 发出节点拖拽结束事件
    */
   emitNodeDragTo: (event: any) => void
+
+  /**
+   * 获取待确认的拖拽操作列表
+   */
+  getPendingOperations: () => any[]
+
+  /**
+   * 接受指定的待确认操作
+   */
+  acceptOperation: (operation: any) => void
+
+  /**
+   * 拒绝指定的待确认操作
+   */
+  rejectOperation: (operation: any) => void
+
+  /**
+   * 清除所有待确认操作
+   */
+  clearAllPendingOperations: () => void
 }
 
 // Tree 组件的 Emits 接口

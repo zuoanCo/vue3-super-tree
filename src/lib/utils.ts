@@ -1,9 +1,7 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-import type { 
-  TreeNode, 
-  TreeSelectionKeys, 
-  TreeExpandedKeys, 
+import type {
+  TreeNode,
+  TreeSelectionKeys,
+  TreeExpandedKeys,
   TreeCheckboxSelectionKeys,
   TreeNodePredicate,
   TreeNodeMapper,
@@ -14,14 +12,32 @@ import type {
   TreeStyleConfig,
   TextTemplateReplacer
 } from './types'
-import { 
+import {
   DEFAULT_TREE_CONFIG,
   DEFAULT_I18N_CONFIG,
   DEFAULT_STYLE_CONFIG
 } from './types'
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+// 轻量 className 合并（本组件类名均为 p-tree-* 自定义类，无需 tailwind 冲突合并，
+// 因此不引入 clsx / tailwind-merge 依赖）
+export type ClassValue = string | number | null | undefined | false | Record<string, boolean | null | undefined> | ClassValue[]
+
+export function cn(...inputs: ClassValue[]): string {
+  const classes: string[] = []
+  const append = (input: ClassValue) => {
+    if (!input) return
+    if (typeof input === 'string' || typeof input === 'number') {
+      classes.push(String(input))
+    } else if (Array.isArray(input)) {
+      input.forEach(append)
+    } else if (typeof input === 'object') {
+      for (const [key, value] of Object.entries(input)) {
+        if (value) classes.push(key)
+      }
+    }
+  }
+  inputs.forEach(append)
+  return classes.join(' ')
 }
 
 /**
@@ -187,17 +203,16 @@ export function filterTree(nodes: TreeNode[], predicate: TreeNodePredicate): Tre
 
 // 节点操作相关函数
 export function insertTreeNode(
-  nodes: TreeNode[], 
-  targetKey: string | number, 
-  newNode: TreeNode, 
+  nodes: TreeNode[],
+  targetKey: string | number,
+  newNode: TreeNode,
   position: TreeDropPosition = 'inside'
 ): TreeNode[] {
   // 处理根级别插入的情况
   if (position === 'root' || targetKey === '__root__') {
     return [...nodes, newNode]
   }
-  
-  // 处理在根级别插入的情况
+
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]
     if (node.key === targetKey) {
@@ -217,18 +232,20 @@ export function insertTreeNode(
           return newNodes
       }
     }
-  }
-  
-  // 递归处理子节点
-  return nodes.map(node => {
+
+    // 递归处理子节点；只有真正插入时才克隆当前层
     if (node.children) {
       const updatedChildren = insertTreeNode(node.children, targetKey, newNode, position)
       if (updatedChildren !== node.children) {
-        return { ...node, children: updatedChildren }
+        const newNodes = [...nodes]
+        newNodes[i] = { ...node, children: updatedChildren }
+        return newNodes
       }
     }
-    return node
-  })
+  }
+
+  // 未找到目标节点：返回原数组引用，调用方可据此判断插入失败
+  return nodes
 }
 
 export function removeTreeNode(
@@ -296,7 +313,7 @@ export function moveTreeNode(
   if (!removeResult.removedNode) {
     return nodes // 如果没有找到要移除的节点，返回原数组
   }
-  
+
   // 然后在目标位置插入节点
   const updatedNodes = insertTreeNode(
     removeResult.nodes,
@@ -304,7 +321,73 @@ export function moveTreeNode(
     removeResult.removedNode,
     position
   )
-  
+
+  // 插入失败（目标不存在）时回滚，避免节点被静默删除
+  if (updatedNodes === removeResult.nodes) {
+    return nodes
+  }
+
+  return updatedNodes
+}
+
+// 拖拽操作：一次移动多个节点（保持相对顺序，作为一个块插入）
+export function moveTreeNodes(
+  nodes: TreeNode[],
+  dragNodeKeys: Array<string | number>,
+  dropNodeKey: string | number,
+  position: TreeDropPosition
+): TreeNode[] {
+  if (dragNodeKeys.length === 0) return nodes
+  if (dragNodeKeys.length === 1) {
+    return moveTreeNode(nodes, dragNodeKeys[0], dropNodeKey, position)
+  }
+
+  // 目标本身在被拖节点中时不执行移动
+  if (dragNodeKeys.some(key => key === dropNodeKey)) return nodes
+
+  // 按树中的原始顺序逐个取出被拖节点
+  const keySet = new Set(dragNodeKeys)
+  const removedNodes: TreeNode[] = []
+  let workingNodes = nodes
+  const collectInOrder = (list: TreeNode[]) => {
+    for (const node of list) {
+      if (keySet.has(node.key)) {
+        removedNodes.push(node)
+      }
+      if (node.children) {
+        collectInOrder(node.children)
+      }
+    }
+  }
+  collectInOrder(nodes)
+
+  if (removedNodes.length === 0) return nodes
+
+  // 逐个移除
+  for (const removed of removedNodes) {
+    const result = removeTreeNode(workingNodes, removed.key)
+    if (result.removedNode) {
+      workingNodes = result.nodes
+    }
+  }
+
+  // 作为一个块按顺序插入目标位置：第一个节点定位，其余节点紧随其后
+  let updatedNodes = workingNodes
+  for (let i = 0; i < removedNodes.length; i++) {
+    const before = updatedNodes
+    if (position === 'above' || position === 'below') {
+      const anchorKey = i === 0 ? dropNodeKey : removedNodes[i - 1].key
+      const anchorPosition = i === 0 ? position : 'below'
+      updatedNodes = insertTreeNode(updatedNodes, anchorKey, removedNodes[i], anchorPosition)
+    } else {
+      updatedNodes = insertTreeNode(updatedNodes, dropNodeKey, removedNodes[i], position)
+    }
+    if (updatedNodes === before) {
+      // 插入失败，回滚到原始数据
+      return nodes
+    }
+  }
+
   return updatedNodes
 }
 
@@ -459,19 +542,19 @@ export function filterTreeNodes(
           })
         }
       } else {
-        // 严格模式：只显示匹配的节点
-        if (matches) {
+        // 严格模式：保留匹配节点及其祖先路径，隐藏未匹配的兄弟/子节点
+        if (matches || filteredChildren.length > 0) {
           filtered.push({
             ...node,
-            children: node.children
+            children: filteredChildren.length > 0 ? filteredChildren : undefined
           })
         }
       }
     }
-    
+
     return filtered
   }
-  
+
   return filterRecursive(nodes)
 }
 
@@ -735,19 +818,14 @@ export function addNodeToTree(
 // 更新节点的 key 以反映新的树归属
 function updateNodeKeysForCrossTree(node: TreeNode, sourceTreeId: string, targetTreeId: string): TreeNode {
   const updatedNode = { ...node }
-  
-  // 使用新的工具函数检查和更新节点键
-  if (isNodeFromTree(updatedNode.key, sourceTreeId)) {
-    const keyString = updatedNode.key.toString()
-    const sourcePrefix = getTreeIdPrefix(sourceTreeId)
+
+  // 直接以前缀比对（treeId 本身可能包含 '-'，不能从 key 反推树ID）
+  const sourcePrefix = getTreeIdPrefix(sourceTreeId)
+  const keyString = String(updatedNode.key)
+  if (keyString.startsWith(sourcePrefix)) {
     const keySuffix = keyString.substring(sourcePrefix.length)
     updatedNode.key = generateNodeKey(targetTreeId, keySuffix)
-    
-    console.log('🔄 更新节点 key:', { 
-      oldKey: node.key, 
-      newKey: updatedNode.key,
-      label: node.label 
-    })
+
   }
   
   // 递归更新子节点的 key
@@ -767,95 +845,103 @@ export function moveCrossTreeNode(
   dragNodeKey: string | number,
   dropNodeKey: string | number,
   position: TreeDropPosition
-): { success: boolean; sourceNodes: TreeNode[]; targetNodes: TreeNode[] } {
+): { success: boolean; sourceNodes: TreeNode[]; targetNodes: TreeNode[]; insertedKey?: string | number } {
   // 添加空值检查
   if (!sourceNodes || !targetNodes) {
     console.error('❌ 源树或目标树数据为空:', { sourceNodes, targetNodes })
     return { success: false, sourceNodes: sourceNodes || [], targetNodes: targetNodes || [] }
   }
   
-  console.log('🔧 跨树拖拽开始:', { 
-    dragNodeKey, 
-    dropNodeKey, 
-    position,
-    sourceNodesCount: sourceNodes.length,
-    targetNodesCount: targetNodes.length
-  })
   
   try {
     // 从源树中移除节点
-    console.log('🔍 正在从源树中查找节点:', dragNodeKey)
     const removeResult = removeTreeNode(sourceNodes, dragNodeKey)
     
     if (!removeResult.removedNode) {
       console.error('❌ 无法从源树中找到要移动的节点:', dragNodeKey)
-      console.log('📋 源树中的所有节点:', sourceNodes.map(n => ({ key: n.key, label: n.label })))
       return { success: false, sourceNodes, targetNodes }
     }
     
-    console.log('✅ 成功从源树中移除节点:', {
-      removedNode: { key: removeResult.removedNode.key, label: removeResult.removedNode.label },
-      remainingNodesCount: removeResult.nodes.length
-    })
     
     // 使用新的工具函数确定源树和目标树ID
     const sourceTreeId = extractTreeIdFromNodeKey(dragNodeKey)
     const targetTreeId = extractTreeIdFromNodeKey(dropNodeKey)
     
-    console.log('🏷️ 树ID分析:', { sourceTreeId, targetTreeId })
     
     // 如果是跨树移动，更新节点的 key
     let nodeToInsert = removeResult.removedNode
     if (sourceTreeId && targetTreeId && sourceTreeId !== targetTreeId) {
-      console.log('🔄 跨树移动，更新节点 key:', { sourceTreeId, targetTreeId })
       nodeToInsert = updateNodeKeysForCrossTree(removeResult.removedNode, sourceTreeId, targetTreeId)
-      console.log('🆔 节点 key 更新:', {
-        oldKey: removeResult.removedNode.key,
-        newKey: nodeToInsert.key
-      })
     }
     
     // 添加到目标树
-    console.log('🎯 正在将节点添加到目标树:', {
-      targetKey: dropNodeKey,
-      nodeToInsert: { key: nodeToInsert.key, label: nodeToInsert.label },
-      position
-    })
     
-    // 首先检查目标节点是否存在
-    const targetNode = findTreeNode(targetNodes, dropNodeKey)
-    if (!targetNode) {
+    // 首先检查目标节点是否存在（根级别放置除外，虚拟根不在数据中）
+    const isRootDrop = position === 'root' || dropNodeKey === '__root__'
+    const targetNode = isRootDrop ? null : findTreeNode(targetNodes, dropNodeKey)
+    if (!isRootDrop && !targetNode) {
       console.error('❌ 无法在目标树中找到目标节点:', dropNodeKey)
-      console.log('📋 目标树中的所有节点:', targetNodes.map(n => ({ key: n.key, label: n.label })))
       return { success: false, sourceNodes, targetNodes }
     }
     
-    console.log('✅ 找到目标节点:', { key: targetNode.key, label: targetNode.label })
-    
+    if (targetNode) {
+    }
+
     const updatedTargetNodes = addNodeToTree(targetNodes, dropNodeKey, nodeToInsert, position)
     
     // 验证插入结果
     const insertedNodeInfo = findTreeNodeWithParent(updatedTargetNodes, nodeToInsert.key)
     if (insertedNodeInfo) {
-      console.log('✅ 拖拽成功:', {
-        draggedNode: nodeToInsert.label,
-        targetNode: findTreeNode(updatedTargetNodes, dropNodeKey)?.label,
-        position: position,
-        newParent: insertedNodeInfo.parent?.label || '根目录',
-        oldKey: removeResult.removedNode.key,
-        newKey: nodeToInsert.key
-      })
     }
     
     return {
       success: true,
       sourceNodes: removeResult.nodes,
-      targetNodes: updatedTargetNodes
+      targetNodes: updatedTargetNodes,
+      insertedKey: nodeToInsert.key
     }
   } catch (error) {
     console.error('❌ 跨树拖拽操作失败:', error)
     return { success: false, sourceNodes, targetNodes }
   }
+}
+
+// 执行跨树多节点移动（保持相对顺序，作为一个块插入）
+export function moveCrossTreeNodes(
+  sourceNodes: TreeNode[],
+  targetNodes: TreeNode[],
+  dragNodeKeys: Array<string | number>,
+  dropNodeKey: string | number,
+  position: TreeDropPosition
+): { success: boolean; sourceNodes: TreeNode[]; targetNodes: TreeNode[] } {
+  if (dragNodeKeys.length === 0) {
+    return { success: false, sourceNodes, targetNodes }
+  }
+  if (dragNodeKeys.length === 1) {
+    return moveCrossTreeNode(sourceNodes, targetNodes, dragNodeKeys[0], dropNodeKey, position)
+  }
+
+  let workingSource = sourceNodes
+  let workingTarget = targetNodes
+  let anchorKey = dropNodeKey
+  let anchorPosition = position
+
+  for (const key of dragNodeKeys) {
+    const result = moveCrossTreeNode(workingSource, workingTarget, key, anchorKey, anchorPosition)
+    if (!result.success) {
+      return { success: false, sourceNodes, targetNodes }
+    }
+    workingSource = result.sourceNodes
+    workingTarget = result.targetNodes
+    // 后续节点插入到前一个节点之后，保持块顺序
+    // 注意跨树移动可能重写节点 key，锚点必须使用插入后的新 key
+    if (position === 'above' || position === 'below') {
+      anchorKey = result.insertedKey ?? key
+      anchorPosition = 'below'
+    }
+  }
+
+  return { success: true, sourceNodes: workingSource, targetNodes: workingTarget }
 }
 
 // 检查是否可以进行跨树拖拽

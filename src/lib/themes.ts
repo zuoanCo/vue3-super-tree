@@ -462,18 +462,20 @@ export const availableThemes: TreeTheme[] = [
 // 主题管理器
 export class TreeThemeManager {
   private currentTheme: TreeTheme = laraLightTheme
-  private rootElement: HTMLElement
+  private rootElement: HTMLElement | null
+  private systemThemeListenerRegistered = false
 
-  constructor(rootElement: HTMLElement = document.documentElement) {
-    this.rootElement = rootElement
+  constructor(rootElement?: HTMLElement) {
+    // SSR 友好：惰性解析 DOM，无 DOM 环境下构造不抛错，DOM 操作变为 no-op
+    this.rootElement = rootElement ?? (typeof document !== 'undefined' ? document.documentElement : null)
   }
 
   /**
    * 应用主题
    */
   applyTheme(theme: TreeTheme | string): void {
-    const targetTheme = typeof theme === 'string' 
-      ? this.getThemeByName(theme) 
+    const targetTheme = typeof theme === 'string'
+      ? this.getThemeByName(theme)
       : theme
 
     if (!targetTheme) {
@@ -481,17 +483,19 @@ export class TreeThemeManager {
       return
     }
 
-    // 移除当前主题类
-    this.rootElement.classList.remove(`p-tree-theme-${this.currentTheme.name}`)
-    
-    // 应用新主题变量
-    Object.entries(targetTheme.variables).forEach(([property, value]) => {
-      this.rootElement.style.setProperty(property, value)
-    })
+    if (this.rootElement) {
+      // 移除当前主题类
+      this.rootElement.classList.remove(`p-tree-theme-${this.currentTheme.name}`)
 
-    // 添加新主题类
-    this.rootElement.classList.add(`p-tree-theme-${targetTheme.name}`)
-    
+      // 应用新主题变量
+      Object.entries(targetTheme.variables).forEach(([property, value]) => {
+        this.rootElement!.style.setProperty(property, value)
+      })
+
+      // 添加新主题类
+      this.rootElement.classList.add(`p-tree-theme-${targetTheme.name}`)
+    }
+
     this.currentTheme = targetTheme
   }
 
@@ -540,7 +544,11 @@ export class TreeThemeManager {
    * 检测系统主题偏好
    */
   detectSystemTheme(): TreeTheme {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
       return laraDarkTheme
     }
     return laraLightTheme
@@ -553,8 +561,13 @@ export class TreeThemeManager {
     const systemTheme = this.detectSystemTheme()
     this.applyTheme(systemTheme)
 
-    // 监听系统主题变化
-    if (window.matchMedia) {
+    // 监听系统主题变化（只注册一次，避免重复调用叠加监听器）
+    if (
+      !this.systemThemeListenerRegistered &&
+      typeof window !== 'undefined' &&
+      window.matchMedia
+    ) {
+      this.systemThemeListenerRegistered = true
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
       mediaQuery.addEventListener('change', (e) => {
         const newTheme = e.matches ? laraDarkTheme : laraLightTheme

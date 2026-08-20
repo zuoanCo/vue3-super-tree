@@ -162,8 +162,9 @@ export function useSelection(
   }
 
   const clearSelection = () => {
-    const previousSelection = selectionKeys.value
-    
+    // 先捕获当前选中的节点（selectedNodes 是 computed，清空后再读会得到空数组）
+    const previouslySelected = selectedNodes.value
+
     switch (selectionMode.value) {
       case 'single':
         selectionKeys.value = null
@@ -178,67 +179,30 @@ export function useSelection(
 
     // 返回取消选择的事件
     const events: TreeNodeUnselectEvent[] = []
-    if (previousSelection) {
-      const previouslySelected = selectedNodes.value
-      for (const node of previouslySelected) {
-        if (typeof node === 'object' && 'key' in node) {
-          events.push({
-            originalEvent: new Event('unselect'),
-            node: node as TreeNode
-          })
-        }
+    for (const node of previouslySelected) {
+      if (typeof node === 'object' && 'key' in node) {
+        events.push({
+          originalEvent: new Event('unselect'),
+          node: node as TreeNode
+        })
       }
     }
-    
+
     return events
   }
 
-  const selectAll = () => {
-    if (selectionMode.value === 'single') return []
-    
-    const allSelectableNodes: TreeNode[] = []
-    traverseTree(nodes.value, (node) => {
-      // 只选择叶子节点（文件），不选择文件夹
-      const isFolder = node.children && node.children.length > 0
-      if (node.selectable !== false && !isFolder) {
-        allSelectableNodes.push(node)
-      }
-    })
-
-    return selectMultipleNodes(allSelectableNodes)
-  }
-
-  // 复选框模式特有方法
-  const updateCheckboxSelection = (node: TreeNode, checked: boolean, event?: Event) => {
-    if (selectionMode.value !== 'checkbox') return null
-    
-    const keys = (selectionKeys.value as Record<string, TreeCheckboxSelectionKeys>) || {}
-    
-    // 更新当前节点
-    keys[node.key] = { checked, partialChecked: false }
-    
-    // 更新子节点
-    const updateChildren = (parentNode: TreeNode, parentChecked: boolean) => {
-      if (parentNode.children) {
-        for (const child of parentNode.children) {
-          if (child.selectable !== false) {
-            keys[child.key] = { checked: parentChecked, partialChecked: false }
-          }
-          updateChildren(child, parentChecked)
-        }
-      }
-    }
-    
-    updateChildren(node, checked)
-    
-    // 更新父节点状态
-    const updateParents = () => {
-      traverseTree(nodes.value, (currentNode) => {
+  // 复选框模式：后序重算所有父节点的选中/半选状态
+  // 父节点状态依赖子节点更新后的值，必须自底向上（先序遍历会让祖先读到旧的子节点状态）
+  const recomputeCheckboxParents = (keys: Record<string, TreeCheckboxSelectionKeys>) => {
+    const visit = (nodeList: TreeNode[]) => {
+      for (const currentNode of nodeList) {
         if (currentNode.children && currentNode.children.length > 0) {
+          visit(currentNode.children)
+
           let checkedChildren = 0
           let partialChildren = 0
           let totalChildren = 0
-          
+
           for (const child of currentNode.children) {
             if (child.selectable !== false) {
               totalChildren++
@@ -250,7 +214,7 @@ export function useSelection(
               }
             }
           }
-          
+
           if (totalChildren > 0) {
             if (checkedChildren === totalChildren) {
               keys[currentNode.key] = { checked: true, partialChecked: false }
@@ -261,12 +225,82 @@ export function useSelection(
             }
           }
         }
-      })
+      }
     }
-    
-    updateParents()
+    visit(nodes.value)
+  }
+
+  const selectAll = () => {
+    if (selectionMode.value === 'single') return []
+
+    const allSelectableNodes: TreeNode[] = []
+    traverseTree(nodes.value, (node) => {
+      // 只选择叶子节点（文件），不选择文件夹
+      const isFolder = node.children && node.children.length > 0
+      if (node.selectable !== false && !isFolder) {
+        allSelectableNodes.push(node)
+      }
+    })
+
+    if (selectionMode.value === 'checkbox') {
+      // checkbox 模式需要级联更新父节点状态，不能逐叶子调用 selectNode
+      const keys: Record<string, TreeCheckboxSelectionKeys> = {}
+      const events: Array<{ type: string; event: TreeNodeSelectEvent }> = []
+      for (const node of allSelectableNodes) {
+        if (!isNodeSelected(selectionKeys.value, node)) {
+          events.push({
+            type: 'select',
+            event: { originalEvent: new Event('select'), node }
+          })
+        }
+        keys[node.key] = { checked: true, partialChecked: false }
+      }
+      recomputeCheckboxParents(keys)
+      selectionKeys.value = keys
+      return events
+    }
+
+    return selectMultipleNodes(allSelectableNodes)
+  }
+
+  // 复选框模式特有方法
+  const updateCheckboxSelection = (
+    node: TreeNode,
+    checked: boolean,
+    event?: Event,
+    options?: { propagateDown?: boolean; propagateUp?: boolean }
+  ) => {
+    if (selectionMode.value !== 'checkbox') return null
+
+    // 克隆 keys：原地修改同一引用会让依赖引用变化的监听（如 v-model）失效
+    const keys = { ...((selectionKeys.value as Record<string, TreeCheckboxSelectionKeys>) || {}) }
+
+    // 更新当前节点
+    keys[node.key] = { checked, partialChecked: false }
+
+    // 更新子节点
+    const updateChildren = (parentNode: TreeNode, parentChecked: boolean) => {
+      if (parentNode.children) {
+        for (const child of parentNode.children) {
+          if (child.selectable !== false) {
+            keys[child.key] = { checked: parentChecked, partialChecked: false }
+          }
+          updateChildren(child, parentChecked)
+        }
+      }
+    }
+
+    // 向下传播（勾选父节点联动子节点），可通过 propagateSelectionDown 关闭
+    if (options?.propagateDown !== false) {
+      updateChildren(node, checked)
+    }
+
+    // 向上传播（子节点状态决定父节点半选/全选），可通过 propagateSelectionUp 关闭
+    if (options?.propagateUp !== false) {
+      recomputeCheckboxParents(keys)
+    }
     selectionKeys.value = keys
-    
+
     return selectNode(node, checked, event)
   }
 
